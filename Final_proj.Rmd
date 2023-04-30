@@ -1,0 +1,68 @@
+---
+title: "Final Project"
+author: "Matthew Bentham"
+date: "2023-04-30"
+output: html_document
+css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<center>
+# Energy Demand Victoria 
+##### MATH1318: Final Project \n\n
+Matthew Bentham 3923076 \n
+John Murrowood 3923075 \n
+</center>
+
+---
+
+# 1. Introduction
+
+
+
+
+*Note* : All code provided is written in Rstudio using R 4.2.0
+
+
+
+```{r, include=FALSE}
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(ggfortify)
+library(TSA)
+library(lmtest)
+library(tseries)
+library(forecast)
+```
+
+```{r, include=FALSE}
+sort.score <- function(x, score = c("bic", "aic")){
+if (score == "aic"){
+x[with(x, order(AIC)),]
+} else if (score == "bic") {
+x[with(x, order(BIC)),]
+} else {
+warning('score = "x" only accepts valid arguments ("aic","bic")')
+}
+}
+```
+
+
+# 2. Preliminary Analysis
+
+## 2.1 Import and Analyse Dataset
+
+To further investigate the time series data, the data set is first imported and converted to a time series object. This time series object is then plotted using the plot() function in order to visualize its main characteristics.
+
+```{r , message=FALSE,fig.align="center",class.source="cobalt"}
+
+Data <- read_csv("complete_dataset.csv")
+Data
+
+
+```
+\n 
