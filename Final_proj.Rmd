@@ -6,7 +6,7 @@ output:
   
     html_document:
       fig_caption: true
-      toc: true
+      
 css: style.css
 ---
 
@@ -89,8 +89,8 @@ To further investigate the time series data, the data set is first imported and 
 Data <- read_csv("complete_dataset.csv")
 
 # Convert Dataframe to Timeseries:
-
-Data_ts <- ts(Data$`demand`,start=c(2015,1),end=c(2022,10),frequency = 365)
+xts(Data$`demand`, Data$date)   
+Data_ts <- xts(Data$`demand`, Data$date)   
 
 head(Data)
 #Plot the Time Series:
@@ -98,6 +98,14 @@ plot(Data_ts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
      main="Figure 1:Time Series of Victoria energy demand")
 
 ```
+
+
+
+Time series characteristics observed from the above plot:   
+- **Trend**: No clear directional     
+- **Variance**: No obvious changing variance    
+- **Seasonality**: Needs to be further investigated, however just from the time series it can be seen all the peaks occurring around July each year with short spikes occurring every January a This is as expected as generally more electricity is used during winter with the exception of very hot days during January aswell that is likely to cause large uptake in cooling systems.
+- **Change Point**: No clear change point observed
 
 
 ```{r , message=FALSE,fig.align="center",class.source="cobalt"}
@@ -145,6 +153,9 @@ qqline(y=Data_ts, col=2, lwd=1, lty = 2)
 
 shapiro.test(Data_ts)
 ```
+
+
+The scatter plot above shows that there is a moderate positive correlation between the energy demand on a given day and its succeeding days. the correlation coefficient of 0.67 shows that the correlation is moderate and confirms that the time series data exhibits some form of positive autocorrelation and the data is NOT randomly distributed. 
 
 
 ## 2.2 Import and Analyse Dataset
