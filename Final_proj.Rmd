@@ -6,7 +6,7 @@ output:
   
     html_document:
       fig_caption: true
-      toc: true
+      
 css: style.css
 ---
 
