@@ -99,11 +99,14 @@ plot(Data_ts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
 
 ```
 
+
+
 Time series characteristics observed from the above plot:   
 - **Trend**: No clear directional     
 - **Variance**: No obvious changing variance    
 - **Seasonality**: Needs to be further investigated, however just from the time series it can be seen all the peaks occurring around July each year with short spikes occurring every January a This is as expected as generally more electricity is used during winter with the exception of very hot days during January aswell that is likely to cause large uptake in cooling systems.
 - **Change Point**: No clear change point observed
+
 
 ```{r , message=FALSE,fig.align="center",class.source="cobalt"}
 # Summary Stats
@@ -117,12 +120,40 @@ Another useful initial analysis to conduct is to determine whether or not previo
 plot(y=Data_ts,x=zlag(Data_ts),ylab="Arctic Sea Ice Extent (million square km)", xlab='Previous years values', main = "Figure 2: Lag 1 Plot.") 
 ```
 
+
 ```{r}
 y = Data_ts    
 x = zlag(Data_ts)   # Generate first lag of the series
 index = 2:length(x)  # Create an index to get rid of the first NA value in x
 cor(y[index],x[index]) # Compute correlation coefficient of the data with its first lag
 ```
+```{r}
+# ACF and PACF
+par(mfrow=c(1,2))
+acf(Data_ts, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
+pacf(Data_ts, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+
+```
+
+```{r}
+# ADF test to test for stationarity
+adf.test(Data_ts)
+```
+The ADF test above shows the time series is stationary
+
+```{r}
+# Check the degree of normality 
+
+qqnorm(y=Data_ts, main="Figure X: QQ plot of Victorian electricity consumption time series")
+qqline(y=Data_ts, col=2, lwd=1, lty = 2)
+```
+
+```{r}
+# Shapiro Wilk test
+
+shapiro.test(Data_ts)
+```
+
 
 The scatter plot above shows that there is a moderate positive correlation between the energy demand on a given day and its succeeding days. the correlation coefficient of 0.67 shows that the correlation is moderate and confirms that the time series data exhibits some form of positive autocorrelation and the data is NOT randomly distributed. 
 
