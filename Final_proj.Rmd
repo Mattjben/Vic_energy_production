@@ -127,6 +127,10 @@ x = zlag(Data_ts)   # Generate first lag of the series
 index = 2:length(x)  # Create an index to get rid of the first NA value in x
 cor(y[index],x[index]) # Compute correlation coefficient of the data with its first lag
 ```
+
+
+The scatter plot above shows that there is a moderate positive correlation between the energy demand on a given day and its succeeding days. the correlation coefficient of 0.67 shows that the correlation is moderate and confirms that the time series data exhibits some form of positive autocorrelation and the data is NOT randomly distributed. 
+
 ```{r}
 # ACF and PACF
 par(mfrow=c(1,2))
@@ -155,7 +159,6 @@ shapiro.test(Data_ts)
 ```
 
 
-The scatter plot above shows that there is a moderate positive correlation between the energy demand on a given day and its succeeding days. the correlation coefficient of 0.67 shows that the correlation is moderate and confirms that the time series data exhibits some form of positive autocorrelation and the data is NOT randomly distributed. 
 
 
 ## 2.2 Import and Analyse Dataset
