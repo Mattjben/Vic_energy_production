@@ -2,7 +2,11 @@
 title: "Final Project"
 author: "Matthew Bentham"
 date: "2023-04-30"
-output: html_document
+output: 
+  
+    html_document:
+      fig_caption: true
+      toc: true
 css: style.css
 ---
 
@@ -18,6 +22,8 @@ John Murrowood 3923075 \n
 </center>
 
 ---
+
+# Contents 
 
 # 1. Introduction
 
@@ -83,6 +89,7 @@ To further investigate the time series data, the data set is first imported and 
 Data <- read_csv("complete_dataset.csv")
 
 # Convert Dataframe to Timeseries:
+
 Data_ts <- ts(Data$`demand`,start=c(2015,1),end=c(2022,10),frequency = 365)
 
 head(Data)
@@ -91,7 +98,27 @@ plot(Data_ts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
      main="Figure 1:Time Series of Victoria energy demand")
 
 ```
-\n 
+\n
+
+```{r , message=FALSE,fig.align="center",class.source="cobalt"}
+# Summary Stats
+summary(Data_ts)
+```
+## 2.2 Impact of previous days
+
+Another useful initial analysis to conduct is to determine whether or not previous years share a strong correlation or not. 
+```{r}
+# plot lag 1 scatterplot
+plot(y=Data_ts,x=zlag(Data_ts),ylab="Arctic Sea Ice Extent (million square km)", xlab='Previous years values', main = "Figure 2: Lag 1 Plot.") 
+```
+
+```{r}
+y = Data_ts    
+x = zlag(Data_ts)   # Generate first lag of the series
+index = 2:length(x)  # Create an index to get rid of the first NA value in x
+cor(y[index],x[index]) # Compute correlation coefficient of the data with its first lag
+```
+
 ## 2.2 Import and Analyse Dataset
 
 
