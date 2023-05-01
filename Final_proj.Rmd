@@ -155,7 +155,7 @@ qqline(y=Data_ts, col=2, lwd=1, lty = 2)
 ```{r}
 # Shapiro Wilk test
 
-shapiro.test(Data_ts)
+shapiro.test(as.numeric(Data_ts))
 ```
 
 
