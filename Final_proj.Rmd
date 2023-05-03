@@ -27,6 +27,8 @@ John Murrowood 3923075 \n
 
 # 1. Introduction
 
+**Research Question**: What are the most accurate forecasts for monthly averaged total daily electricity demand in Victoria for the next 10 months?
+
 With the resurrection of the SEC , announcement of offshore wind farms in south east Victoria and Victoria's renewable energy target of 50% by 2030, being able to accurately predict energy demand on a continual basis is becoming more and more important. As renewable energy sources like wind and solar do not produce constant energy outputs, accurate forecasting of energy demand throughout the day is essential to ensure renewable energy sources are utilized efficiently. Although demand forecasting is increasingly relevant when incorporating renewable into the grid, demand forecasting in general reduces over and underproduction of energy and minimizes energy waste as a whole.
 
 **Data Source:**https://www.kaggle.com/datasets/aramacus/electricity-demand-in-victoria-australia 
@@ -75,6 +77,18 @@ x[with(x, order(BIC)),]
 warning('score = "x" only accepts valid arguments ("aic","bic")')
 }
 }
+
+Normalitytests <-  function(data,title) {
+  # Create a QQ plot of the data
+  
+  qqnorm(y=data, main=title)
+  qqline(y=data, col=2, lwd=1, lty = 2)
+
+  # Perform a Shapiro-Wilk test on the data
+  shapiro.test(as.numeric(data))
+}
+
+
 ```
 
 
@@ -89,7 +103,7 @@ To further investigate the time series data, the data set is first imported and 
 Data <- read_csv("complete_dataset.csv")
 
 # Convert Dataframe to Timeseries:
-xts(Data$`demand`, Data$date)   
+
 Data_ts <- xts(Data$`demand`, Data$date)   
 
 head(Data)
@@ -99,65 +113,93 @@ plot(Data_ts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
 
 ```
 
+- **Trend**: A very slight downward trend.
 
+- **Variance**: No obvious changing variance. 
+
+- **Seasonality**: It can be seen all the peaks occurring around July each year with short spikes occurring every January a This is as expected as generally more electricity is used during winter with the exception of very hot days during January aswell that is likely to cause large uptake in cooling systems. 
+
+- **Change Point**: No clear change point observed
+
+
+As you can see in the plot above the time series data has relatively high granularity due to the fact daily data points are used. Because of this, this data is likely to contain multiple seasonal components on the day , week and month level. As the main objective of this report is to identify and forecast trends in the electricity demand on a monthly basis, this time series data will be aggregated on monthly basis. 
+
+
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+
+
+# remove last 6 data points as they belong to separate month and will skew the summations
+n<-dim(Data)[1]
+df<-Data[1:(n-6),]
+Data_ts <- xts(df$`demand`, df$date)  
+
+Data_ts_agg <- apply.monthly(Data_ts,sum)
+
+#Plot the Time Series:
+plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
+     main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
+
+```
 
 Time series characteristics observed from the above plot:   
-- **Trend**: No clear directional     
-- **Variance**: No obvious changing variance    
-- **Seasonality**: Needs to be further investigated, however just from the time series it can be seen all the peaks occurring around July each year with short spikes occurring every January a This is as expected as generally more electricity is used during winter with the exception of very hot days during January aswell that is likely to cause large uptake in cooling systems.
+
+- **Trend**: A very slight downward trend.    
+
+- **Variance**: No obvious changing variance. 
+
+- **Seasonality**: Needs to be further investigated, however annual repeating patterns can be seen around every January and july each year which strongly suggests the existence of seasonality.   
+
 - **Change Point**: No clear change point observed
 
 
 ```{r , message=FALSE,fig.align="center",class.source="cobalt"}
 # Summary Stats
-summary(Data_ts)
+summary(Data_ts_agg)
 ```
+
+As seen in the summary data above, the data has a mean of 3654578 and a median of 3631206 , which is relatively similar indicating that the distribution is roughly symmetric if not slightly right-skewed. The min and max have a difference of 1064321 which is relatively large, indicating that there is significant variability in the data. The IQR of the data set is 423614 which indicates a moderate spread of data points around the mean. As both q1 and q3 are similar distance away from the median it can be concluded the data is relatively symmetric , however the slightly greater difference between q3 and the median does further indicate a slight positive skew. 
+
+
 ## 2.2 Impact of previous days
 
 Another useful initial analysis to conduct is to determine whether or not previous years share a strong correlation or not. 
 ```{r}
 # plot lag 1 scatterplot
-plot(y=Data_ts,x=zlag(Data_ts),ylab="Arctic Sea Ice Extent (million square km)", xlab='Previous years values', main = "Figure 2: Lag 1 Plot.") 
+plot(y=Data_ts_agg,x=zlag(Data_ts_agg),ylab="Total monthly electricity demand (MWh)", xlab='Previous months values', main = "Figure 3: Lag 1 Plot.") 
 ```
 
 
 ```{r}
-y = Data_ts    
-x = zlag(Data_ts)   # Generate first lag of the series
+y = Data_ts_agg    
+x = zlag(Data_ts_agg)   # Generate first lag of the series
 index = 2:length(x)  # Create an index to get rid of the first NA value in x
 cor(y[index],x[index]) # Compute correlation coefficient of the data with its first lag
 ```
 
 
-The scatter plot above shows that there is a moderate positive correlation between the energy demand on a given day and its succeeding days. the correlation coefficient of 0.67 shows that the correlation is moderate and confirms that the time series data exhibits some form of positive autocorrelation and the data is NOT randomly distributed. 
+The scatter plot above shows that there is a weak positive correlation between the energy demand on a given month and its succeeding months. the correlation coefficient of 0.50 shows that the correlation is relatively weak and confirms that the time series data exhibits some form of positive autocorrelation however not a significant amount and the data is NOT randomly distributed. 
 
 ```{r}
 # ACF and PACF
 par(mfrow=c(1,2))
-acf(Data_ts, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
-pacf(Data_ts, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+acf(Data_ts_agg, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
+pacf(Data_ts_agg, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
 
 ```
+
+From the ACF plot above we can see a very clear wave-like pattern which indicates the presence of seasonality in our data.The Pacf exhibits a slowly decreasing pattern which suggests a gradual decay of autocorrelation , suggesting the presence of a long-term/weak auto-regressive trend in the data. From this one can roughly deduce that a SARIMA model is likely going to be the best model-type for this data. 
 
 ```{r}
 # ADF test to test for stationarity
-adf.test(Data_ts)
+adf.test(Data_ts_agg)
 ```
-The ADF test above shows the time series is stationary
+For the ADF test, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected.The ADF test above shows a p-value of 0.088 which is greater than 0.05 , meaning the null hypothesis cannot be rejected and the time series is assumed to NOT be stationary. 
 
 ```{r}
 # Check the degree of normality 
-
-qqnorm(y=Data_ts, main="Figure X: QQ plot of Victorian electricity consumption time series")
-qqline(y=Data_ts, col=2, lwd=1, lty = 2)
+Normalitytests(Data_ts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
 ```
-
-```{r}
-# Shapiro Wilk test
-
-shapiro.test(as.numeric(Data_ts))
-```
-
+In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is less than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
 
 
 
