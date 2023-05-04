@@ -132,7 +132,7 @@ As you can see in the plot above the time series data has relatively high granul
 n<-dim(Data)[1]
 df<-Data[1:(n-6),]
 Data_ts <- xts(df$`demand`, df$date)  
-
+ 
 Data_ts_agg <- apply.monthly(Data_ts,sum)
 
 #Plot the Time Series:
@@ -150,6 +150,7 @@ Time series characteristics observed from the above plot:
 - **Seasonality**: Needs to be further investigated, however annual repeating patterns can be seen around every January and july each year which strongly suggests the existence of seasonality.   
 
 - **Change Point**: No clear change point observed
+
 
 
 ```{r , message=FALSE,fig.align="center",class.source="cobalt"}
@@ -199,14 +200,65 @@ For the ADF test, a p-value less 0.05 indicates that under the 95% confidence in
 # Check the degree of normality 
 Normalitytests(Data_ts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
 ```
-In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is less than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
+In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is greater than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
 
-
-
-## 2.2 Import and Analyse Dataset
 
 
 # 3. Data transformations
+
+```{r}
+# As the data is not normal a box cox transformation will be used to see if this improves normality
+BC = BoxCox.ar(Data_ts_agg, lambda = seq(-2, 6, by = 0.1))
+title(main = "Figure X: Optimal BoxCox transformation")
+
+```
+
+```{r}
+lambda <- BC$lambda[which(max(BC$loglike) == BC$loglike)]
+lambda
+```
+
+```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+# Apply box cox transformation to time series and see if normality has improved
+Data_ts_agg_BC = (Data_ts_agg^lambda-1)/lambda
+#Plot the Time Series:
+plot(Data_ts_agg_BC,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
+     main="Figure X:Time Series of Victoria energy demand (aggregated monthly)")
+
+```
+
+As can be seen in figure X above, the BoxCox transformation does not appear to have had much effect on the time series.
+
+```{r}
+adf.test(Data_ts_agg_BC)
+```
+
+It can be seen in the ADF test above, the BoxCox transformation slightly increased the stationarity of the time series.
+
+```{r}
+# Check if normality has been improved
+Normalitytests(Data_ts_agg_BC,"Figure X: QQ plot of BC Victorian electricity consumption time series")
+```
+
+As can be seen in the Shapiro Wilks test above, The boxCox transformation has resulted in the time series becoming less noraml with a p-value of 0.01. Therefore because the BC transformation has done little to improve sttionarity and nothing to improve normality, the transformation will not be used for the model.
+
+As the model was not stationary, an initial first differencing will be applied.
+
+```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+# applying first differencing
+diff.Data_ts_agg <- diff(Data_ts_agg)
+par(mfrow=c(1,1))
+plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure X: Time series plot of differenced
+     Electricity demand.')
+```
+
+Upon initial inspection, there does not appear to be any trends or changing variance. Therefore it it likely only the first differencing will be necessary.
+
+```{r}
+# Use adf test on differenced series
+adf.test(diff.Data_ts_agg)
+```
+
 
 # 4. Model specification
 
