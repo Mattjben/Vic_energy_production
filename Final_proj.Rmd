@@ -1,6 +1,6 @@
 ---
 title: "Final Project"
-author: "Matthew Bentham"
+author: "Matthew Bentham and John Murrowood"
 date: "2023-04-30"
 output: 
   
@@ -246,7 +246,7 @@ As the model was not stationary, an initial first differencing will be applied.
 
 ```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
 # applying first differencing
-diff.Data_ts_agg <- diff(Data_ts_agg)
+diff.Data_ts_agg <- diff(Data_ts_agg)[-1]
 par(mfrow=c(1,1))
 plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure X: Time series plot of differenced
      Electricity demand.')
@@ -258,9 +258,38 @@ Upon initial inspection, there does not appear to be any trends or changing vari
 # Use adf test on differenced series
 adf.test(diff.Data_ts_agg)
 ```
-
+It can be seen on the ADF test above, the p-value of 0.01 is less than 0.05 and therefore the null hypothesis can be rejected and the differenced series can be considered stationary.
 
 # 4. Model specification
+
+```{r}
+# ACF and PACF to find period of differenced series
+par(mfrow=c(1,2))
+acf(diff.Data_ts_agg, main="Figure X: ACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+pacf(diff.Data_ts_agg, main="Figure X: PACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+
+```
+
+It can be seen in figure X above, the ACF plot appears to show a period of 6 months. This can be used for the first seasonal differencing.
+
+### Residual Analysis
+
+```{r}
+# Model 1 with first seasonal differencing
+m1.ts = Arima(diff.Data_ts_agg,order=c(0,0,0),seasonal=list(order=c(0,1,0), period=6))
+res.m1 = residuals(m1.ts);  
+par(mfrow=c(1,1))
+plot(res.m1,xlab='Time',ylab='Residuals',main="Figue X: Time series plot of model 1 residuals")
+```
+
+```{r}
+# ACF and PACF plot
+
+par(mfrow=c(1,2))
+acf(diff.Data_ts_agg, main="Figure X: ACF plot of model 1 residuals")
+pacf(diff.Data_ts_agg, main="Figure X: PACF plot of model 1 residuals")
+```
+
 
 # 5. Parameter Estimation
 
