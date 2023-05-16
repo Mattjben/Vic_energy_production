@@ -260,7 +260,15 @@ adf.test(diff.Data_ts_agg)
 ```
 It can be seen on the ADF test above, the p-value of 0.01 is less than 0.05 and therefore the null hypothesis can be rejected and the differenced series can be considered stationary.
 
+```{r}
+# Test for normality of difference plot 
+Normalitytests(diff.Data_ts_agg,"Figure X: QQ plot of difference time series")
+```
+Shapiro-Wilk test archived a p-value of greater than 0.05 , meaning under the 95% confidence interval we can assume normality.
+
 # 4. Model specification
+
+* TALK ABOUT WHAT MODEL WE CHOSE 
 
 ```{r}
 # ACF and PACF to find period of differenced series
@@ -273,6 +281,8 @@ pacf(diff.Data_ts_agg, main="Figure X: PACF plot of \ndifferenced daily Victoria
 It can be seen in figure X above, the ACF plot appears to show a period of 6 months. This can be used for the first seasonal differencing.
 
 ### Residual Analysis
+
+# In order to deal with the season trend effect, we will fit an intial plain model with the first seasonal difference to see if the seasonal trend is effected and to what extent. 
 
 ```{r}
 # Model 1 with first seasonal differencing
@@ -289,6 +299,7 @@ par(mfrow=c(1,2))
 acf(diff.Data_ts_agg, main="Figure X: ACF plot of model 1 residuals")
 pacf(diff.Data_ts_agg, main="Figure X: PACF plot of model 1 residuals")
 ```
+
 
 
 # 5. Parameter Estimation
