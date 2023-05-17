@@ -62,6 +62,7 @@ library(dplyr)
 library(ggfortify)
 library(xts)
 library(TSA)
+library(tsbox)
 library(lmtest)
 library(tseries)
 library(forecast)
@@ -88,7 +89,18 @@ Normalitytests <-  function(data,title) {
   shapiro.test(as.numeric(data))
 }
 
+Plot_Model <- function(data,model_num,fignum,p,d,q,P,D,Q) {
 
+  m.ts = Arima(data,order=c(p,d,q),seasonal=list(order=c(P,D,Q), period=12))
+  res.m = residuals(m.ts);  
+  par(mfrow=c(1,1))
+  plot(res.m,xlab='Time',ylab='Residuals',main=paste("Figure: ", fignum, "Time series plot of model" , model_num,"residuals"))
+  par(mfrow=c(1,2))
+  acf(res.m,lag.max=48, main=paste("Figure: ", fignum, "ACF plot of model" , model_num,"residuals"))
+  pacf(res.m,lag.max=48, main=paste("Figure: ", fignum, "PACF plot of model" , model_num,"residuals"))
+  par(mfrow=c(1,1))
+ return(m.ts)
+}
 ```
 
 
@@ -104,11 +116,11 @@ Data <- read_csv("complete_dataset.csv")
 
 # Convert Dataframe to Timeseries:
 
-Data_ts <- xts(Data$`demand`, Data$date)   
+Data_xts <- xts(Data$`demand`, Data$date)   
 
 head(Data)
 #Plot the Time Series:
-plot(Data_ts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
+plot(Data_xts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
      main="Figure 1:Time Series of Victoria energy demand")
 
 ```
@@ -132,12 +144,13 @@ As you can see in the plot above the time series data has relatively high granul
 n<-dim(Data)[1]
 df<-Data[1:(n-6),]
 Data_ts <- xts(df$`demand`, df$date)  
- 
+
 Data_ts_agg <- apply.monthly(Data_ts,sum)
 
 #Plot the Time Series:
 plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
      main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
+Data_ts_agg
 
 ```
 
@@ -183,12 +196,13 @@ The scatter plot above shows that there is a weak positive correlation between t
 ```{r}
 # ACF and PACF
 par(mfrow=c(1,2))
-acf(Data_ts_agg, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
-pacf(Data_ts_agg, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+acf(Data_ts_agg,lag.max=30, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
+pacf(Data_ts_agg,lag.max=30, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
 
 ```
 
 From the ACF plot above we can see a very clear wave-like pattern which indicates the presence of seasonality in our data.The Pacf exhibits a slowly decreasing pattern which suggests a gradual decay of autocorrelation , suggesting the presence of a long-term/weak auto-regressive trend in the data. From this one can roughly deduce that a SARIMA model is likely going to be the best model-type for this data. 
+
 
 ```{r}
 # ADF test to test for stationarity
@@ -201,6 +215,11 @@ For the ADF test, a p-value less 0.05 indicates that under the 95% confidence in
 Normalitytests(Data_ts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
 ```
 In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is greater than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
+
+
+# EXPLAIN THAT THERES OBIOUS SEASONALITY SO WE NEED TO ADD FREQUENCY TO THE TIME SERIES OBJECT
+
+
 
 
 
@@ -266,6 +285,10 @@ Normalitytests(diff.Data_ts_agg,"Figure X: QQ plot of difference time series")
 ```
 Shapiro-Wilk test archived a p-value of greater than 0.05 , meaning under the 95% confidence interval we can assume normality.
 
+
+
+
+
 # 4. Model specification
 
 * TALK ABOUT WHAT MODEL WE CHOSE 
@@ -284,23 +307,36 @@ It can be seen in figure X above, the ACF plot appears to show a period of 6 mon
 
 # In order to deal with the season trend effect, we will fit an intial plain model with the first seasonal difference to see if the seasonal trend is effected and to what extent. 
 
+
 ```{r}
 # Model 1 with first seasonal differencing
-m1.ts = Arima(diff.Data_ts_agg,order=c(0,0,0),seasonal=list(order=c(0,1,0), period=6))
-res.m1 = residuals(m1.ts);  
-par(mfrow=c(1,1))
-plot(res.m1,xlab='Time',ylab='Residuals',main="Figue X: Time series plot of model 1 residuals")
+m1.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,0,1,0)
 ```
+no longer see the repeating pattern
+
+
+
+no significant lag in acf plot and 1 significant lag at lag 13 aka lag 1 - so we will try a SIMRA(1,0) to see if we can get rid of the wave alltogether
 
 ```{r}
-# ACF and PACF plot
-
-par(mfrow=c(1,2))
-acf(diff.Data_ts_agg, main="Figure X: ACF plot of model 1 residuals")
-pacf(diff.Data_ts_agg, main="Figure X: PACF plot of model 1 residuals")
+# Model 2 SAMRA(1,0) with first seasonal differencing
+m2.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,1,1,0)
 ```
+significant lag at pacf 1 still so try a p value of 2 
+
+```{r}
+# Model 3 SAMRA(2,0) with first seasonal differencing
+m3.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,2,1,0)
+```
+No significant lags can conlcude we have removed the seasonal trend 
 
 
+Now we will look at the lags before the first significant lag. --> there is 1 significant lag in acf and 1 signifcant lag in pacf
+so we will ty to use a ARIMA(1,1) model.
+```{r}
+# Model 4  ARIMA(1,1)+ SAMRA(2,0) with first seasonal differencing
+Arima(diff.Data_ts_agg,order=c(1,0,1),seasonal=list(order=c(2,1,0), period=12))
+```
 
 # 5. Parameter Estimation
 
