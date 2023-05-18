@@ -316,17 +316,17 @@ no longer see the repeating pattern
 
 
 
-no significant lag in acf plot and 1 significant lag at lag 13 aka lag 1 - so we will try a SIMRA(1,0) to see if we can get rid of the wave alltogether
+no significant lag in acf plot and 1 significant lag at lag 13 aka lag 1 - so we will try a SIMRA(1,0) to see if we can get rid of the wave all together
 
 ```{r}
 # Model 2 SAMRA(1,0) with first seasonal differencing
-m2.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,1,1,0)
+m2.ts<-Plot_Model(diff.Data_ts_agg,2,"X",0,0,0,1,1,0)
 ```
-significant lag at pacf 1 still so try a p value of 2 
+Seasonality appears gone in above ACF and PACF plots and therefore will move on the get p and q values for ARIMA part. significant lag in ACF so q will be 1. 1 big lag in PACF so p can be 1. 2 smaller significant lags so p can also be 3.
 
 ```{r}
 # Model 3 SAMRA(2,0) with first seasonal differencing
-m3.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,2,1,0)
+m3.ts<-Plot_Model(diff.Data_ts_agg,3,"X",0,0,0,2,1,0)
 ```
 No significant lags can conlcude we have removed the seasonal trend 
 
@@ -335,8 +335,12 @@ Now we will look at the lags before the first significant lag. --> there is 1 si
 so we will ty to use a ARIMA(1,1) model.
 ```{r}
 # Model 4  ARIMA(1,1)+ SAMRA(2,0) with first seasonal differencing
-Arima(diff.Data_ts_agg,order=c(1,0,1),seasonal=list(order=c(2,1,0), period=12))
+Arima(Data_ts_agg,order=c(1,1,1),seasonal=list(order=c(1,1,0), period=12))
+m4.ts<-Plot_Model(Data_ts_agg,4,"X",1,1,1,1,1,0)
 ```
+
+
+Looks nearly like white noise series with no significant lags in ACF and 2 significant lags in PACF. Next EACF and BIC table will be used to find other model values.
 
 # 5. Parameter Estimation
 
