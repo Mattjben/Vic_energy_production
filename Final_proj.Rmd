@@ -62,6 +62,8 @@ library(dplyr)
 library(ggfortify)
 library(xts)
 library(TSA)
+remotes::install_github("cran/FitAR")
+library(FitAR)
 library(tsbox)
 library(lmtest)
 library(tseries)
@@ -101,6 +103,46 @@ Plot_Model <- function(data,model_num,fignum,p,d,q,P,D,Q) {
   par(mfrow=c(1,1))
  return(m.ts)
 }
+
+
+residual.analysis <- function(model, std = TRUE,start = 2, class = c("ARIMA","GARCH","ARMA-GARCH", "fGARCH")[1]){
+  library(TSA)
+  
+  if (class == "ARIMA"){
+    if (std == TRUE){
+      res.model = rstandard(model)
+    }else{
+      res.model = residuals(model)
+    }
+  }else if (class == "GARCH"){
+    res.model = model$residuals[start:model$n.used]
+  }else if (class == "ARMA-GARCH"){
+    res.model = model@fit$residuals
+  }else if (class == "fGARCH"){
+    res.model = model@residuals
+  }else {
+    stop("The argument 'class' must be either 'ARIMA' or 'GARCH' ")
+  }
+  par(mfrow=c(3,2))
+  plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
+  abline(h=0)
+  hist(res.model,main="Histogram of standardised residuals")
+  qqnorm(res.model,main="QQ plot of standardised residuals")
+  qqline(res.model, col = 2)
+  acf(res.model,main="ACF of standardised residuals")
+  print(shapiro.test(res.model))
+  k=0
+  LBQPlot(res.model, lag.max = 30, StartLag = k + 1, k = 0, SquaredQ = FALSE)
+  par(mfrow=c(1,1))
+}
+
+Parameter.estimation <- function(data,order1,order2,method){
+    model = Arima(data,order=order1,seasonal=list(order=order2, period=12),method = method)
+    coeftest(model)
+    residual.analysis(model = model)
+    return(model)
+}
+    
 ```
 
 
@@ -329,36 +371,84 @@ It can be seen in figure X above, the ACF plot appears to show a period of 6 mon
 
 ```{r}
 # Model 1 with first seasonal differencing
-m1.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,0,1,0)
+m1.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,0)
 ```
-no longer see the repeating pattern in time series plot. 
+- Significan LAG a 1 in ACF
 
-
-
-no significant lag in acf plot and 1 significant lag at lag 13 aka lag 1 - so we will try a SIMRA(1,0) to see if we can get rid of the wave alltogether
 
 ```{r}
-# Model 2 SAMRA(1,0) with first seasonal differencing
-m2.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,1,1,0)
+# Model 2 SAMRA(0,1) with first seasonal differencing
+m2.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,1)
 ```
-significant lag at pacf 1 still so try a p value of 2 -- dont increase p to much
+significant lag at acf 1 so trying with q =2 
 
 ```{r}
-# Model 3 SAMRA(2,0) with first seasonal differencing
-m3.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,2,1,0)
+# Model 3 SAMRA(0,2) with first seasonal differencing
+m3.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,2)
 ```
+significant lag at acf 2 so trying with q =3
+```{r}
+# Model 4 SAMRA(0,3) with first seasonal differencing
+m4.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,3)
+```
+
 No significant lags can conlcude we have removed the seasonal trend 
 
 
-Now we will look at the lags before the first significant lag. --> there is 1 significant lag in acf and 1 signifcant lag in pacf
-so we will ty to use a ARIMA(1,1) model.
+Now we will look at the lags before the first significant lag. --> there is 1 significant lags in acf and 2 signifcant lag in pacf
+- pacf could be a decreasing pattern 
+
+so we will ty to use a ARIMA(2,1) model.
 ```{r}
-# Model 4  ARIMA(1,1)+ SAMRA(2,0) with first seasonal differencing
-m3.ts<-Plot_Model(diff.Data_ts_agg,1,"X",2,0,2,2,1,0)
+# Model 5  ARIMA(2,1)+ SAMRA(0,3) with first seasonal differencing
+m5.ts<-Plot_Model(Data_ts_agg,1,"X",2,0,1,0,1,3)
+
+```
+```{r}
+# GET EACF
+res.m4 = residuals(m4.ts)
+eacf(res.m4)
+
 ```
 
-# 5. Parameter Estimation
+# The tentative models are specified as 
+# SARIMA(0,0,0)x(0,1,3)_12
+# SARIMA(0,0,1)x(0,1,3)_12
+# SARIMA(1,0,1)x(0,1,3)_12
+# SARIMA(1,0,0)x(0,1,3)_12
+# SARIMA(2,0,1)x(0,1,3)_12
 
+```{r}
+# BIC
+par(mfrow=c(1,1))
+bic_table = armasubsets(y=res.m4,nar=5,nma=5,y.name='p',ar.method='ols')
+plot(bic_table)
+
+```
+# The tentative models are specified as 
+# SARIMA(4,0,0)x(0,1,3)_12
+# SARIMA(4,0,3)x(0,1,3)_12
+# SARIMA(2,0,3)x(0,1,3)_12
+
+TOTAL SET of possible models:
+# SARIMA(4,0,0)x(0,1,3)_12
+# SARIMA(4,0,3)x(0,1,3)_12
+# SARIMA(2,0,3)x(0,1,3)_12
+# SARIMA(0,0,0)x(0,1,3)_12
+# SARIMA(0,0,1)x(0,1,3)_12
+# SARIMA(1,0,1)x(0,1,3)_12
+# SARIMA(1,0,0)x(0,1,3)_12
+# SARIMA(2,0,1)x(0,1,3)_12
+
+
+# 5. Parameter Estimation
+Parameter.estimation <- function(data,order1,order2,method
+
+```{r}
+# SARIMA(4,0,0)x(0,1,3)_12
+m4_006 <- Parameter.estimation(Data_ts_agg,c(4,0,0),c(0,1,3),method="ML")
+
+```
 # 6. Model Diagnostics
 
 # 7. Conclusion
