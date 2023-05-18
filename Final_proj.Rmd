@@ -143,15 +143,13 @@ As you can see in the plot above the time series data has relatively high granul
 # remove last 6 data points as they belong to separate month and will skew the summations
 n<-dim(Data)[1]
 df<-Data[1:(n-6),]
-Data_ts <- xts(df$`demand`, df$date)  
+Data_xts <- xts(df$`demand`, df$date)  
 
-Data_ts_agg <- apply.monthly(Data_ts,sum)
+Data_xts_agg <- apply.monthly(Data_xts,sum)
 
 #Plot the Time Series:
-plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
+plot(Data_xts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
      main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
-Data_ts_agg
-
 ```
 
 Time series characteristics observed from the above plot:   
@@ -168,7 +166,7 @@ Time series characteristics observed from the above plot:
 
 ```{r , message=FALSE,fig.align="center",class.source="cobalt"}
 # Summary Stats
-summary(Data_ts_agg)
+summary(Data_xts_agg)
 ```
 
 As seen in the summary data above, the data has a mean of 3654578 and a median of 3631206 , which is relatively similar indicating that the distribution is roughly symmetric if not slightly right-skewed. The min and max have a difference of 1064321 which is relatively large, indicating that there is significant variability in the data. The IQR of the data set is 423614 which indicates a moderate spread of data points around the mean. As both q1 and q3 are similar distance away from the median it can be concluded the data is relatively symmetric , however the slightly greater difference between q3 and the median does further indicate a slight positive skew. 
@@ -179,13 +177,13 @@ As seen in the summary data above, the data has a mean of 3654578 and a median o
 Another useful initial analysis to conduct is to determine whether or not previous years share a strong correlation or not. 
 ```{r}
 # plot lag 1 scatterplot
-plot(y=Data_ts_agg,x=zlag(Data_ts_agg),ylab="Total monthly electricity demand (MWh)", xlab='Previous months values', main = "Figure 3: Lag 1 Plot.") 
+plot(y=Data_xts_agg,x=zlag(Data_xts_agg),ylab="Total monthly electricity demand (MWh)", xlab='Previous months values', main = "Figure 3: Lag 1 Plot.") 
 ```
 
 
 ```{r}
-y = Data_ts_agg    
-x = zlag(Data_ts_agg)   # Generate first lag of the series
+y = Data_xts_agg    
+x = zlag(Data_xts_agg)   # Generate first lag of the series
 index = 2:length(x)  # Create an index to get rid of the first NA value in x
 cor(y[index],x[index]) # Compute correlation coefficient of the data with its first lag
 ```
@@ -196,8 +194,8 @@ The scatter plot above shows that there is a weak positive correlation between t
 ```{r}
 # ACF and PACF
 par(mfrow=c(1,2))
-acf(Data_ts_agg,lag.max=30, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
-pacf(Data_ts_agg,lag.max=30, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+acf(Data_xts_agg,lag.max=30, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
+pacf(Data_xts_agg,lag.max=30, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
 
 ```
 
@@ -206,20 +204,34 @@ From the ACF plot above we can see a very clear wave-like pattern which indicate
 
 ```{r}
 # ADF test to test for stationarity
-adf.test(Data_ts_agg)
+adf.test(Data_xts_agg)
 ```
 For the ADF test, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected.The ADF test above shows a p-value of 0.088 which is greater than 0.05 , meaning the null hypothesis cannot be rejected and the time series is assumed to NOT be stationary. 
 
 ```{r}
 # Check the degree of normality 
-Normalitytests(Data_ts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
+Normalitytests(Data_xts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
 ```
 In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is greater than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
 
 
 # EXPLAIN THAT THERES OBIOUS SEASONALITY SO WE NEED TO ADD FREQUENCY TO THE TIME SERIES OBJECT
 
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
 
+# Convert to ts object so that we can add frequency:
+Data <- df                                  # Duplicate data
+Data$year <- strftime(Data$date, "%Y")    # Create year column
+Data$month <- strftime(Data$date, "%m")   # Create month column
+
+Data_agg <- aggregate(`demand` ~ month + year,       # Aggregate data
+                        Data,
+                        FUN = sum)
+Data_ts_agg <- ts(Data_agg$`demand`,frequency=12,start =c(2015,1),end =c(2020,9) )
+plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
+     main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
+
+```
 
 
 
