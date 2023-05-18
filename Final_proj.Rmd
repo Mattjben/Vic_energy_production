@@ -56,7 +56,7 @@ This data set contains the total daily energy demand across Victoria in MWh from
 
 
 ```{r, include=FALSE}
-library(readr)
+malibrary(readr)
 library(ggplot2)
 library(dplyr)
 library(ggfortify)
