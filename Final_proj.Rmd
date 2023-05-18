@@ -227,9 +227,15 @@ Data$month <- strftime(Data$date, "%m")   # Create month column
 Data_agg <- aggregate(`demand` ~ month + year,       # Aggregate data
                         Data,
                         FUN = sum)
-Data_ts_agg <- ts(Data_agg$`demand`,frequency=12,start =c(2015,1),end =c(2020,9) )
+# Convert data into a time series object
+Data_ts_agg = matrix(Data_agg$`demand`)
+Data_ts_agg = as.vector(t(Data_ts_agg))
+
+
+Data_ts_agg <- ts(Data_ts_agg,frequency=12,start =c(2015,1),end =c(2020,9) )
 plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
      main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
+
 
 ```
 
@@ -271,13 +277,13 @@ It can be seen in the ADF test above, the BoxCox transformation slightly increas
 Normalitytests(Data_ts_agg_BC,"Figure X: QQ plot of BC Victorian electricity consumption time series")
 ```
 
-As can be seen in the Shapiro Wilks test above, The boxCox transformation has resulted in the time series becoming less noraml with a p-value of 0.01. Therefore because the BC transformation has done little to improve sttionarity and nothing to improve normality, the transformation will not be used for the model.
+As can be seen in the Shapiro Wilks test above, The boxCox transformation has resulted in the time series becoming less noraml with a p-value of 0.02. Therefore because the BC transformation has done little to improve sttionarity and nothing to improve normality, the transformation will not be used for the model.
 
 As the model was not stationary, an initial first differencing will be applied.
 
 ```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
 # applying first differencing
-diff.Data_ts_agg <- diff(Data_ts_agg)[-1]
+diff.Data_ts_agg <- diff(Data_ts_agg)
 par(mfrow=c(1,1))
 plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure X: Time series plot of differenced
      Electricity demand.')
@@ -313,6 +319,7 @@ pacf(diff.Data_ts_agg, main="Figure X: PACF plot of \ndifferenced daily Victoria
 
 ```
 
+# WHAT IS THE POINT OF THIS?
 It can be seen in figure X above, the ACF plot appears to show a period of 6 months. This can be used for the first seasonal differencing.
 
 ### Residual Analysis
@@ -324,7 +331,7 @@ It can be seen in figure X above, the ACF plot appears to show a period of 6 mon
 # Model 1 with first seasonal differencing
 m1.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,0,1,0)
 ```
-no longer see the repeating pattern
+no longer see the repeating pattern in time series plot. 
 
 
 
@@ -334,7 +341,7 @@ no significant lag in acf plot and 1 significant lag at lag 13 aka lag 1 - so we
 # Model 2 SAMRA(1,0) with first seasonal differencing
 m2.ts<-Plot_Model(diff.Data_ts_agg,1,"X",0,0,0,1,1,0)
 ```
-significant lag at pacf 1 still so try a p value of 2 
+significant lag at pacf 1 still so try a p value of 2 -- dont increase p to much
 
 ```{r}
 # Model 3 SAMRA(2,0) with first seasonal differencing
@@ -347,7 +354,7 @@ Now we will look at the lags before the first significant lag. --> there is 1 si
 so we will ty to use a ARIMA(1,1) model.
 ```{r}
 # Model 4  ARIMA(1,1)+ SAMRA(2,0) with first seasonal differencing
-Arima(diff.Data_ts_agg,order=c(1,0,1),seasonal=list(order=c(2,1,0), period=12))
+m3.ts<-Plot_Model(diff.Data_ts_agg,1,"X",2,0,2,2,1,0)
 ```
 
 # 5. Parameter Estimation
