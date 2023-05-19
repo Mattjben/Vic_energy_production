@@ -373,6 +373,8 @@ It can be seen in figure X above, the ACF plot appears to show a period of 6 mon
 # Model 1 with first seasonal differencing
 m1.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,0)
 ```
+Periodic behavior has been removed in time series data 
+
 - Significan LAG a 1 in ACF
 
 
@@ -393,9 +395,15 @@ m4.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,3)
 ```
 ```{r}
 adf.test(residuals(m4.ts))
-
+pp.test(residuals(m4.ts))
+kpss.test(residuals(m4.ts))
 ```
-It can be seen on the ADF test above, the p-value of 0.3 is greater than 0.3 and therefore the null hypothesis cannot be rejected and the m4.ts isnt stationary.
+For the Dickey-Fuller Test above, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected and there is statistically significant stationarity in the data. 
+
+
+It can be seen on the ADF test above, the p-value of 0.3 is greater than 0.3 and therefore the null hypothesis cannot be rejected and the m4.ts IS stationary.
+
+PP TEST ALSO CONFIRMS STATIONARITY 
 
 
 
@@ -422,6 +430,14 @@ so we will ty to use a ARIMA(2,1) model.
 m5.ts<-Plot_Model(Data_ts_agg,1,"X",2,1,1,0,1,3)
 
 ```
+
+```{r}
+
+adf.test(residuals(base.ts))
+
+
+```
+
 ```{r}
 # GET EACF
 res.base = residuals(base.ts)
@@ -464,7 +480,7 @@ Parameter.estimation <- function(data,order1,order2,method
 ```{r}
 # SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="ML")
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(3,1,0),method="ML")
 
 ```
 - not normal 
