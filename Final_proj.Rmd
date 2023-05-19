@@ -480,7 +480,7 @@ Parameter.estimation <- function(data,order1,order2,method
 ```{r}
 # SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(3,1,0),method="ML")
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="ML")
 
 ```
 - not normal 
@@ -495,28 +495,77 @@ m4_011_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="CSS")
 - good acf 
 - Only two significant parameters 
 
+
+
+IT is evident that the seasonal component isnt being captured as non of the SIMRA paramters are significant. thereofore the P and Q values will be altered using overfitting to see which values ar optimal. 
+
+# 1 - reducing Q value by 1
+
 ```{r}
-# SARIMA(1,1,1)x(0,1,3)_12
+# SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
-base_111_ML <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(0,1,3),method="ML")
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,2),method="ML")
+
+```
+# 1 - reducing Q value by 2
+
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,1),method="ML")
+
+```
+# 1 - reducing Q value by 3 and increasing P
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML")
+
+```
+# 1 - reducing Q value by 3 and increasing P
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML")
+
+```
+# 1 -  increasing P by 1
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(2,1,0),method="ML")
+
+```
+This is thew most optimal model as increasing any further causes and reduction in the number of significant parameters 
+
+
+
+
+
+
+
+```{r}
+# SARIMA(1,1,1)x(2,1,0)_12
+# ML METHOD 
+base_111_ML <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML")
 
 ```
 - not normal 
 - good acf 
-- Only one significant parameters 
+- Only one additional significant parameters 
 ```{r}
 # CSS METHOD 
-base_111_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(0,1,3),method="CSS")
+base_111_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="CSS")
 
 ```
 - not normal 
 - good acf 
-- Only two significant parameters 
+- all significant paramters
 
 ```{r}
 # SARIMA(1,1,2)x(0,1,3)_12
 # ML METHOD 
-base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(0,1,3),method="ML")
+base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="ML")
 
 ```
 - not normal 
@@ -525,10 +574,13 @@ base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(0,1,3),method="ML")
 
 ```{r}
 # SARIMA(1,1,2)x(0,1,3)_12
-# ML METHOD 
-base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(0,1,3),method="ML")
+# CSS METHOD 
+base_112_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="CSS")
 
 ```
+
+
+
 - not normal 
 - good acf 
 - no significant parameters
@@ -537,30 +589,30 @@ base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(0,1,3),method="ML")
 ```{r}
 # SARIMA(2,1,1)x(0,1,3)_12
 # ML METHOD 
-base_211_ML <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(0,1,3),method="ML")
+base_211_ML <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="ML")
 
 ```
 - not normal 
 - good acf 
-- only two significant parameters
+- only one significant parameters
 ```{r}
 # SARIMA(2,1,1)x(0,1,3)_12
 # CSS METHOD 
-base_211_CSS <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(0,1,3),method="CSS")
+base_211_CSS <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="CSS")
 
 ```
 - not normal 
 - 1 significant lag in acf
-- 4 significant parameters - 2 insignificant parameters
+- all significant parameters
 ```{r}
 # SARIMA(0,1,5)x(0,1,3)_12
-base_015_ML <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(0,1,3),method="ML")
+base_015_ML <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="ML")
 ```
 - not normal 
 - only 1 significant parameter
 ```{r}
 # SARIMA(0,1,5)x(0,1,3)_12
-base_015_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(0,1,3),method="CSS")
+base_015_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="CSS")
 ```
 - not normal 
 - only 2 significant parameter
@@ -569,31 +621,99 @@ base_015_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(0,1,3),method="CSS")
 
 ```{r}
 # SARIMA(0,1,2)x(0,1,3)_12
-base_012_ML <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(0,1,3),method="ML")
+base_012_ML <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML")
 ```
 - not normal 
 - only 1 significant parameter
 ```{r}
 # SARIMA(0,1,2)x(0,1,3)_12
-base_012_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(0,1,3),method="CSS")
+base_012_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="CSS")
 ```
 - not normal 
 - only 2 significant parameters
 ```{r}
 # SARIMA(0,1,3)x(0,1,3)_12
-base_013_ML <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,1),method="ML")
+base_013_ML <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(2,1,0),method="ML")
 ```
 - not normal 
 - 3 significant parameters
 
 ```{r}
 # SARIMA(0,1,3)x(0,1,3)_12
-base_013_ML <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,3),method="CSS")
-``- not normal 
-- only 2 significant parameters`
+base_013_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,3),method="CSS")
+```
+- not normal 
+- only 2 significant parameters
+
+
+
+```{r}
+sc.AIC = AIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_ML,base_013_ML)
+
+sc.BIC = BIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_ML ,base_013_ML)
+
+# sc.BIC = AIC(m5_014.landing, m5_015.landing, m5_614.landing, m5_114.landing, 
+#              m5_115.landing, m5_1012.landing, m5_412.landing, m5_112.landing,
+#              k = log(length(NMFS_Landings.ts)))
+
+sort.score(sc.AIC, score = "aic")
+sort.score(sc.BIC, score = "bic")
+```
+
+```{r}
+
+
+Sm4_011_ML <- accuracy(m4_011_ML)[1:7]
+Sbase_111_ML <- accuracy(base_111_ML)[1:7]
+Sbase_112_ML <- accuracy(base_112_ML)[1:7]
+Sbase_211_ML <- accuracy(base_211_ML)[1:7]
+Sbase_015_ML <- accuracy(base_015_ML)[1:7]
+Sbase_012_ML <- accuracy(base_012_ML)[1:7]
+Sbase_013_ML <- accuracy(base_013_ML)[1:7]
+
+df.Smodels <- data.frame(
+  rbind(Sm4_011_ML, Sbase_111_ML, Sbase_112_ML, Sbase_211_ML, 
+        Sbase_015_ML, Sbase_012_ML, Sbase_013_ML)
+)
+colnames(df.Smodels) <- c("ME", "RMSE", "MAE", "MPE", "MAPE", 
+                          "MASE", "ACF1")
+rownames(df.Smodels) <- c("SARIMA(0,1,1)x(2,1,0)_12","SARIMA(1,1,1)x(2,1,0)_12", "SARIMA(1,1,2)x(2,1,0)_12", "SARIMA(2,1,1)x(2,1,0)_12", 
+                          "SARIMA(0,1,5)x(2,1,0)_12", "SARIMA(0,1,2)x(2,1,0)_12", "SARIMA(0,1,3)x(2,1,0)_12")
+round(df.Smodels,  digits = 3)
+```
+
+
 
 
 # 6. Model Diagnostics
+```{r}
+m4_111 <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML")
+
+```
+
+# AR(1) is NOT  significant.
+
+```{r}
+m4_012 <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML")
+
+```
+# MA(2) is NOT  significant.
+
+
+
+# Forecasting
+```{r}
+m5_1012.landingA = Arima(Data_ts_agg,order=c(0,1,1),seasonal=list(order=c(2,1,0), period=12), 
+                          method = "ML")
+# Notice that I use lambda = 0 and send NMFS_Landings.ts instead of log(NMFS_Landings.ts) to get Arima() function to do the transformation.
+# This way, I will get the forecasts in the original scale.
+preds1 = forecast(m5_1012.landingA,  h = 48)
+preds1
+plot(preds1)
+
+
+```
+
 
 # 7. Conclusion
 
