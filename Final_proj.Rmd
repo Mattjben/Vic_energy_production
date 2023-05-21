@@ -62,8 +62,8 @@ library(dplyr)
 library(ggfortify)
 library(xts)
 library(TSA)
-#remotes::install_github("cran/FitAR")
-#library(FitAR)
+
+library(FitAR)
 library(tsbox)
 library(lmtest)
 library(tseries)
@@ -132,6 +132,7 @@ residual.analysis <- function(model, std = TRUE,start = 2, class = c("ARIMA","GA
   acf(res.model,main="ACF of standardised residuals")
   print(shapiro.test(res.model))
   k=0
+  LBQPlot(res.model, lag.max = 30, StartLag = k + 1, k = 0, SquaredQ = FALSE)
   par(mfrow=c(1,1))
 }
 
