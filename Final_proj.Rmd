@@ -122,7 +122,7 @@ residual.analysis <- function(model, std = TRUE,start = 2, class = c("ARIMA","GA
   }else {
     stop("The argument 'class' must be either 'ARIMA' or 'GARCH' ")
   }
-  par(mfrow=c(2,2))
+  par(mfrow=c(2,3))
   plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
   abline(h=0)
   hist(res.model,main="Histogram of standardised residuals")
@@ -376,6 +376,16 @@ Normalitytests(diff.Data_ts_agg,"Figure X: QQ plot of difference time series")
 The Shapiro-Wilk test resulted in a p-value greater than 0.05, indicating that, under the 95% confidence level, we can assume normality of the data. This is beneficial when fitting time series models because many models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average), assume normality of the residuals.
 
 
+```{r}
+# ACF and PACF to find period of differenced series
+par(mfrow=c(1,2))
+acf(diff.Data_ts_agg, lag.max = 70, main="Figure X: ACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+pacf(diff.Data_ts_agg, lag.max = 70,main="Figure X: PACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+
+```
+from the acf and pacf plots above you can see that significant lags are still occurring at with slightly reduced wave-like pattern. The significant lags in the ACF plot indicate that past values of the time series are correlated with the current value, further indicating the presence of a seasonal pattern. Considering both the ACF and PACF, it becomes evident that the data still exhibits seasonality and trend components. These components need to be properly accounted for in subsequent modeling steps to ensure accurate forecasting and capturing the underlying patterns.
+
+Therefore, it is crucial to incorporate appropriate seasonal and trend models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average) or other techniques designed to handle time series data with seasonal and trend components.
 
 # 4. Model specification
 
