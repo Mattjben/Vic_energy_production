@@ -62,10 +62,9 @@ library(dplyr)
 library(ggfortify)
 library(xts)
 library(TSA)
-
-library(FitAR)
 library(tsbox)
 library(lmtest)
+library(FitAR)
 library(tseries)
 library(forecast)
 ```
@@ -143,6 +142,12 @@ Parameter.estimation <- function(data,order1,order2,method){
     print(coeftest(model))
     return(model)
 }
+
+Stationary_tests <- function(data){
+  print(adf.test(data))
+  print(pp.test(data))
+  print(kpss.test(data))
+}
     
 ```
 
@@ -215,6 +220,30 @@ summary(Data_xts_agg)
 As seen in the summary data above, the data has a mean of 3654578 and a median of 3631206 , which is relatively similar indicating that the distribution is roughly symmetric if not slightly right-skewed. The min and max have a difference of 1064321 which is relatively large, indicating that there is significant variability in the data. The IQR of the data set is 423614 which indicates a moderate spread of data points around the mean. As both q1 and q3 are similar distance away from the median it can be concluded the data is relatively symmetric , however the slightly greater difference between q3 and the median does further indicate a slight positive skew. 
 
 
+```{r}
+# ACF and PACF
+par(mfrow=c(1,2))
+acf(Data_xts_agg,lag.max=30, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
+pacf(Data_xts_agg,lag.max=30, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+
+```
+
+From the ACF plot above we can see a very clear wave-like pattern which indicates the presence of seasonality in our data.The Pacf exhibits a slowly decreasing pattern which suggests a gradual decay of autocorrelation , suggesting the presence of a long-term/weak auto-regressive trend in the data. From this one can roughly deduce that a SARIMA model is likely going to be the best model-type for this data. 
+
+
+```{r}
+# ADF test to test for stationarity
+Stationary_tests(Data_xts_agg)
+
+```
+For the ADF test, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected.The ADF test above shows a p-value of 0.088 which is greater than 0.05 , meaning the null hypothesis cannot be rejected and the time series is assumed to NOT be stationary. The Phillips-Perron also supported this with a p-value less than 0.05 , meaning under the general consesus non-stationarity can be assumed. 
+
+```{r}
+# Check the degree of normality 
+Normalitytests(Data_xts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
+```
+In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is greater than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
+
 ## 2.2 Impact of previous days
 
 Another useful initial analysis to conduct is to determine whether or not previous years share a strong correlation or not. 
@@ -234,31 +263,24 @@ cor(y[index],x[index]) # Compute correlation coefficient of the data with its fi
 
 The scatter plot above shows that there is a weak positive correlation between the energy demand on a given month and its succeeding months. the correlation coefficient of 0.50 shows that the correlation is relatively weak and confirms that the time series data exhibits some form of positive autocorrelation however not a significant amount and the data is NOT randomly distributed. 
 
+
+
+# 3. Identifying seasonality
+
 ```{r}
-# ACF and PACF
-par(mfrow=c(1,2))
-acf(Data_xts_agg,lag.max=30, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
-pacf(Data_xts_agg,lag.max=30, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+#Plot acf plot of time series data
+acf(Data_xts_agg, lag.max = 70,main="Figure : ACF plot of Victorian electricity consumption time series")
 
 ```
 
-From the ACF plot above we can see a very clear wave-like pattern which indicates the presence of seasonality in our data.The Pacf exhibits a slowly decreasing pattern which suggests a gradual decay of autocorrelation , suggesting the presence of a long-term/weak auto-regressive trend in the data. From this one can roughly deduce that a SARIMA model is likely going to be the best model-type for this data. 
+Because a wave pattern with clear significant lags was seen in the acf plot above and because the general time series plot shows clearly repeating patterns in July and January each year it and therefore non-stationary which will be further investigated.Using the ACF plot the amount of lags between each peak in the observed ossification pattern can be used to determine frequency.
 
+<center>
+![Figure X: Calculating frequency](C:\Users\MattJ\OneDrive - RMIT University\SEM 4\Time series\Vic_energy_production\Lags.png)
 
-```{r}
-# ADF test to test for stationarity
-adf.test(Data_xts_agg)
-```
-For the ADF test, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected.The ADF test above shows a p-value of 0.088 which is greater than 0.05 , meaning the null hypothesis cannot be rejected and the time series is assumed to NOT be stationary. 
+</center>
+It can be seen that peaks occur at lags 1 , 12 , 24 etc. which suggest the seasonality of the series exhibits a frequency of approximately 12. This also is expected in terms of the context of the problem as energy usage is likely to go up every winter and start of summer. Because of this the frequency of 12 will be embdedded into the time series itself. 
 
-```{r}
-# Check the degree of normality 
-Normalitytests(Data_xts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
-```
-In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is greater than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
-
-
-# EXPLAIN THAT THERES OBIOUS SEASONALITY SO WE NEED TO ADD FREQUENCY TO THE TIME SERIES OBJECT
 
 ```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
 
@@ -286,6 +308,8 @@ plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Ye
 
 # 3. Data transformations
 
+Because the acf and pacf plots indicate the presence of trends in the data (downward trends) and because the days exhibited both non-stationarity and non-normality, it will be likely transformations will need to be performed to remove this trend. Because Log transformations are generally used for variance stabilisation, a more general transformation called Box-Cox was tested.
+
 ```{r}
 # As the data is not normal a box cox transformation will be used to see if this improves normality
 BC = BoxCox.ar(Data_ts_agg, lambda = seq(-2, 6, by = 0.1))
@@ -297,6 +321,7 @@ title(main = "Figure X: Optimal BoxCox transformation")
 lambda <- BC$lambda[which(max(BC$loglike) == BC$loglike)]
 lambda
 ```
+The optimal value of lambda in this instance is 3.1
 
 ```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
 # Apply box cox transformation to time series and see if normality has improved
@@ -310,19 +335,19 @@ plot(Data_ts_agg_BC,type="o",ylab="Total monthly electricity demand (MWh)",xlab=
 As can be seen in figure X above, the BoxCox transformation does not appear to have had much effect on the time series.
 
 ```{r}
-adf.test(Data_ts_agg_BC)
+Stationary_tests(Data_ts_agg_BC)
 ```
 
-It can be seen in the ADF test above, the BoxCox transformation slightly increased the stationarity of the time series.
+It can be seen in both the ADF and pp test above, the BoxCox transformation slightly increased the stationary of the time series.
 
 ```{r}
 # Check if normality has been improved
 Normalitytests(Data_ts_agg_BC,"Figure X: QQ plot of BC Victorian electricity consumption time series")
 ```
 
-As can be seen in the Shapiro Wilks test above, The boxCox transformation has resulted in the time series becoming less noraml with a p-value of 0.02. Therefore because the BC transformation has done little to improve sttionarity and nothing to improve normality, the transformation will not be used for the model.
+Based on the results of the Shapiro-Wilk test, it is observed that the Box-Cox transformation has made the time series less normal, as indicated by a p-value of 0.02. Consequently, since the transformation has had minimal impact on achieving stationarity and improving normality, it will not be utilized for the model.
 
-As the model was not stationary, an initial first differencing will be applied.
+Given that the model was not stationary, an initial first differencing will be employed. This differencing approach aims to remove any underlying trend present in the data and make it stationary, which is a crucial requirement for many time series models.
 
 ```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
 # applying first differencing
@@ -332,21 +357,23 @@ plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure X: Time serie
      Electricity demand.')
 ```
 
-Upon initial inspection, there does not appear to be any trends or changing variance. Therefore it it likely only the first differencing will be necessary.
+Upon initial inspection of the first differenced time series plot, it is observed that there are no apparent trends or changing variances. This suggests that the first differencing alone might be sufficient to make the time series stationary.
 
 ```{r}
 # Use adf test on differenced series
-adf.test(diff.Data_ts_agg)
+Stationary_tests(diff.Data_ts_agg)
 ```
-It can be seen on the ADF test above, the p-value of 0.01 is less than 0.05 and therefore the null hypothesis can be rejected and the differenced series can be considered stationary.
+Based on the results of the Augmented Dickey-Fuller (ADF) test, the p-value of 0.01 is less than the significance level of 0.05. Thus, the null hypothesis of non-stationarity can be rejected, and the differenced series can be considered stationary at a 95% confidence level.
+
+While the Phillips-Perron (PP) test may have yielded a p-value less than 0.05, it is important to note that the ADF and KPSS tests both agree on the stationarity of the differenced series. When multiple tests produce conflicting results, it is common practice to rely on the consensus among different tests. In this case, since the ADF and KPSS tests align in indicating stationarity, it is reasonable to assume the series is stationary.
+
+
 
 ```{r}
 # Test for normality of difference plot 
 Normalitytests(diff.Data_ts_agg,"Figure X: QQ plot of difference time series")
 ```
-Shapiro-Wilk test archived a p-value of greater than 0.05 , meaning under the 95% confidence interval we can assume normality.
-
-
+The Shapiro-Wilk test resulted in a p-value greater than 0.05, indicating that, under the 95% confidence level, we can assume normality of the data. This is beneficial when fitting time series models because many models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average), assume normality of the residuals.
 
 
 
