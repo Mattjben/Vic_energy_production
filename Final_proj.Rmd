@@ -396,7 +396,7 @@ The model used to forecast this dataset will be a SARIMA model. This is because 
 
 ### Residual Analysis
 
-# To deal with the season trend effect, we will fit an intial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
+To deal with the season trend effect, we will fit an intial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
 
 
 ```{r}
