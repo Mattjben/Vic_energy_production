@@ -396,7 +396,7 @@ The model used to forecast this dataset will be a SARIMA model. This is because 
 
 ### Residual Analysis
 
-To deal with the season trend effect, we will fit an intial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
+To deal with the season trend effect, we will fit an initial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
 
 
 ```{r}
@@ -419,32 +419,25 @@ The residual plot of model 2 can be seen in figure X above, similarly to model o
 # Model 3 SAMRA(0,2) with first seasonal differencing
 m3.ts<-Plot_Model(Data_ts_agg,3,"X",0,0,0,0,1,2)
 ```
-The residual plot of model 2 can be seen in figure X above, similarly to model one it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the first lag in the ACF shown in figure X above therefore for Model 3, Q will be updated to 2 and checked if there is still a significant lag.
+The residual plot of model 2 can be seen in figure X above, similarly to model two it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the second lag in the ACF shown in figure X above as well as the PACF shown in figure X above. Therefore for Model 3, Q will be updated to 3 for model 4 and checked if there is still a significant lag.
 
-significant lag at acf 2 so trying with q =3
+
 
 ```{r}
 # Model 4 SAMRA(0,3) with first seasonal differencing
-m4.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,3)
+m4.ts<-Plot_Model(Data_ts_agg,4,"X",0,0,0,0,1,3)
 
 ```
 
-
+The residual plot of model 4 can be seen in figure X above, similarly to model 3 it can be seen there is no obvious seasonal component in the residuals.There is also no significant lags in the PACF or ACF plots shown above and therefore P = 0 and Q = 3 can be considered to model the seasonal component of the monthly aggregated time series.
 
 ```{r}
 Stationary_tests(residuals(m4.ts))
 
 ```
-For the Dickey-Fuller Test above, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected and there is statistically significant stationarity in the data. 
+For the Dickey-Fuller Test above, a p-value of 0.32 is greater than 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected and there is statistically significant stationarity in the data. This also also shown for the pp test value of 0.01 which is less than 0.05 abd therefore also shows the time series is stationary.
 
-
-It can be seen on the ADF test above, the p-value of 0.3 is greater than 0.3 and therefore the null hypothesis cannot be rejected and the m4.ts IS stationary.
-
-PP TEST ALSO CONFIRMS STATIONARITY 
-
-
-
-No significant lags can conclude we have removed the seasonal trend 
+The KPSS test however does not show stationarity as the p-value of 0.1 is greater than 0.05.
 
 
 ```{r}
@@ -455,8 +448,6 @@ adf.test(residuals(base.ts))
 
 
 ```
-
-
 
 Now we will look at the lags before the first significant lag. --> there is 1 significant lags in acf and 2 signifcant lag in pacf
 - pacf could be a decreasing pattern 
