@@ -1,0 +1,757 @@
+---
+title: "Final Project"
+author: "Matthew Bentham and John Murrowood"
+date: "2023-04-30"
+output: 
+  
+    html_document:
+      fig_caption: true
+      
+css: style.css
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+<center>
+# Energy Demand Victoria 
+##### MATH1318: Final Project \n\n
+Matthew Bentham 3923076 \n
+John Murrowood 3923075 \n
+</center>
+
+---
+
+# Contents 
+
+# 1. Introduction
+
+**Research Question**: What are the most accurate forecasts for monthly averaged total daily electricity demand in Victoria for the next 10 months?
+
+With the resurrection of the SEC , announcement of offshore wind farms in south east Victoria and Victoria's renewable energy target of 50% by 2030, being able to accurately predict energy demand on a continual basis is becoming more and more important. As renewable energy sources like wind and solar do not produce constant energy outputs, accurate forecasting of energy demand throughout the day is essential to ensure renewable energy sources are utilized efficiently. Although demand forecasting is increasingly relevant when incorporating renewable into the grid, demand forecasting in general reduces over and underproduction of energy and minimizes energy waste as a whole.
+
+**Data Source:**https://www.kaggle.com/datasets/aramacus/electricity-demand-in-victoria-australia 
+
+This data set contains the total daily energy demand across Victoria in MWh from 1st Jan 2015 to 6 Oct 2020 which consists of 2016 days. Although the additional features of this data set may not be directly relevant to this report, below is a list of variables contained in the data and their description:
+
+- **date** : datetime, the date of the recording
+- **demand** : float, a total daily electricity demand in MWh
+- **RRP** : float, a recommended retail price in AUD$ / MWh
+- **demand_pos_RRP** : float, a total daily demand at positive RRP in MWh
+- **RRP_positive** : float, an averaged positive RRP, weighted by the corresponding intraday demand in AUD$ / MWh
+- **demand_neg_RRP** : float, an total daily demand at negative RRP in MWh
+- **RRP_negative** : float, an average negative RRP, weighted by the corresponding intraday demand in AUD$ / MWh
+- **frac_at_neg_RRP** : float, a fraction of the day when the demand was traded at negative RRP
+- **min_temperature** : float, minimum temperature during the day in Celsius
+- **max_temperature** : float, maximum temperature during the day in Celsius
+- **solar_exposure** : float, total daily sunlight energy in MJ/m^2
+- **rainfall** : float, daily rainfall in mm
+- **school_day** : boolean, if students were at school on that day
+- **holiday** : boolean, if the day was a state or national holiday
+
+
+*Note* : All code provided is written in Rstudio using R 4.2.0
+
+
+
+```{r, include=FALSE}
+library(readr)
+library(ggplot2)
+library(dplyr)
+library(ggfortify)
+library(xts)
+library(TSA)
+library(tsbox)
+library(lmtest)
+library(FitAR)
+library(tseries)
+library(forecast)
+```
+
+```{r, include=FALSE}
+sort.score <- function(x, score = c("bic", "aic")){
+if (score == "aic"){
+x[with(x, order(AIC)),]
+} else if (score == "bic") {
+x[with(x, order(BIC)),]
+} else {
+warning('score = "x" only accepts valid arguments ("aic","bic")')
+}
+}
+
+Normalitytests <-  function(data,title) {
+  # Create a QQ plot of the data
+  
+  qqnorm(y=data, main=title)
+  qqline(y=data, col=2, lwd=1, lty = 2)
+
+  # Perform a Shapiro-Wilk test on the data
+  shapiro.test(as.numeric(data))
+}
+
+Plot_Model <- function(data,model_num,fignum,p,d,q,P,D,Q) {
+
+  m.ts = Arima(data,order=c(p,d,q),seasonal=list(order=c(P,D,Q), period=12))
+  res.m = residuals(m.ts);  
+  par(mfrow=c(1,1))
+  plot(res.m,xlab='Time',ylab='Residuals',main=paste("Figure: ", fignum, "Time series plot of model" , model_num,"residuals"))
+  par(mfrow=c(1,2))
+  acf(res.m,lag.max=48, main=paste("Figure: ", fignum, "ACF plot of model" , model_num,"residuals"))
+  pacf(res.m,lag.max=48, main=paste("Figure: ", fignum, "PACF plot of model" , model_num,"residuals"))
+  par(mfrow=c(1,1))
+ return(m.ts)
+}
+
+
+residual.analysis <- function(model, std = TRUE,start = 2, class = c("ARIMA","GARCH","ARMA-GARCH", "fGARCH")[1]){
+  library(TSA)
+  
+  if (class == "ARIMA"){
+    if (std == TRUE){
+      res.model = rstandard(model)
+    }else{
+      res.model = residuals(model)
+    }
+  }else if (class == "GARCH"){
+    res.model = model$residuals[start:model$n.used]
+  }else if (class == "ARMA-GARCH"){
+    res.model = model@fit$residuals
+  }else if (class == "fGARCH"){
+    res.model = model@residuals
+  }else {
+    stop("The argument 'class' must be either 'ARIMA' or 'GARCH' ")
+  }
+  par(mfrow=c(2,3))
+  plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
+  abline(h=0)
+  hist(res.model,main="Histogram of standardised residuals")
+  qqnorm(res.model,main="QQ plot of standardised residuals")
+  qqline(res.model, col = 2)
+  acf(res.model,main="ACF of standardised residuals")
+  print(shapiro.test(res.model))
+  k=0
+  LBQPlot(res.model, lag.max = 30, StartLag = k + 1, k = 0, SquaredQ = FALSE)
+  par(mfrow=c(1,1))
+}
+
+Parameter.estimation <- function(data,order1,order2,method){
+    model = Arima(data,order=order1,seasonal=list(order=order2, period=12),method = method)
+    
+    residual.analysis(model = model)
+    print(coeftest(model))
+    return(model)
+}
+
+Stationary_tests <- function(data){
+  print(adf.test(data))
+  print(pp.test(data))
+  print(kpss.test(data))
+}
+    
+```
+
+
+# 2. Preliminary Analysis
+
+## 2.1 Import and Analyse Dataset
+
+To further investigate the time series data, the data set is first imported and converted to a time series object. This time series object is then plotted using the plot() function in order to visualize its main characteristics.
+
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+
+Data <- read_csv("complete_dataset.csv")
+
+# Convert Dataframe to Timeseries:
+
+Data_xts <- xts(Data$`demand`, Data$date)   
+
+head(Data)
+#Plot the Time Series:
+plot(Data_xts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
+     main="Figure 1:Time Series of Victoria energy demand")
+
+```
+
+- **Trend**: A very slight downward trend.
+
+- **Variance**: No obvious changing variance. 
+
+- **Seasonality**: It can be seen all the peaks occurring around July each year with short spikes occurring every January a This is as expected as generally more electricity is used during winter with the exception of very hot days during January aswell that is likely to cause large uptake in cooling systems. 
+
+- **Change Point**: No clear change point observed
+
+
+As you can see in the plot above the time series data has relatively high granularity due to the fact daily data points are used. Because of this, this data is likely to contain multiple seasonal components on the day , week and month level. As the main objective of this report is to identify and forecast trends in the electricity demand on a monthly basis, this time series data will be aggregated on monthly basis. 
+
+
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+
+
+# remove last 6 data points as they belong to separate month and will skew the summations
+n<-dim(Data)[1]
+df<-Data[1:(n-6),]
+Data_xts <- xts(df$`demand`, df$date)  
+
+Data_xts_agg <- apply.monthly(Data_xts,sum)
+
+#Plot the Time Series:
+plot(Data_xts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
+     main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
+```
+
+Time series characteristics observed from the above plot:   
+
+- **Trend**: A very slight downward trend.    
+
+- **Variance**: No obvious changing variance. 
+
+- **Seasonality**: Needs to be further investigated, however annual repeating patterns can be seen around every January and july each year which strongly suggests the existence of seasonality.   
+
+- **Change Point**: No clear change point observed
+
+
+
+```{r , message=FALSE,fig.align="center",class.source="cobalt"}
+# Summary Stats
+summary(Data_xts_agg)
+```
+
+As seen in the summary data above, the data has a mean of 3654578 and a median of 3631206 , which is relatively similar indicating that the distribution is roughly symmetric if not slightly right-skewed. The min and max have a difference of 1064321 which is relatively large, indicating that there is significant variability in the data. The IQR of the data set is 423614 which indicates a moderate spread of data points around the mean. As both q1 and q3 are similar distance away from the median it can be concluded the data is relatively symmetric , however the slightly greater difference between q3 and the median does further indicate a slight positive skew. 
+
+
+```{r}
+# ACF and PACF
+par(mfrow=c(1,2))
+acf(Data_xts_agg,lag.max=30, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
+pacf(Data_xts_agg,lag.max=30, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+
+```
+
+From the ACF plot above we can see a very clear wave-like pattern which indicates the presence of seasonality in our data.The Pacf exhibits a slowly decreasing pattern which suggests a gradual decay of autocorrelation , suggesting the presence of a long-term/weak auto-regressive trend in the data. From this one can roughly deduce that a SARIMA model is likely going to be the best model-type for this data. 
+
+
+```{r}
+# ADF test to test for stationarity
+Stationary_tests(Data_xts_agg)
+
+```
+For the ADF test, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected.The ADF test above shows a p-value of 0.088 which is greater than 0.05 , meaning the null hypothesis cannot be rejected and the time series is assumed to NOT be stationary. The Phillips-Perron also supported this with a p-value less than 0.05 , meaning under the general consesus non-stationarity can be assumed. 
+
+```{r}
+# Check the degree of normality 
+Normalitytests(Data_xts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
+```
+In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is greater than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
+
+## 2.2 Impact of previous days
+
+Another useful initial analysis to conduct is to determine whether or not previous years share a strong correlation or not. 
+```{r}
+# plot lag 1 scatterplot
+plot(y=Data_xts_agg,x=zlag(Data_xts_agg),ylab="Total monthly electricity demand (MWh)", xlab='Previous months values', main = "Figure 3: Lag 1 Plot.") 
+```
+
+
+```{r}
+y = Data_xts_agg    
+x = zlag(Data_xts_agg)   # Generate first lag of the series
+index = 2:length(x)  # Create an index to get rid of the first NA value in x
+cor(y[index],x[index]) # Compute correlation coefficient of the data with its first lag
+```
+
+
+The scatter plot above shows that there is a weak positive correlation between the energy demand on a given month and its succeeding months. the correlation coefficient of 0.50 shows that the correlation is relatively weak and confirms that the time series data exhibits some form of positive autocorrelation however not a significant amount and the data is NOT randomly distributed. 
+
+
+
+# 3. Identifying seasonality
+
+```{r}
+#Plot acf plot of time series data
+acf(Data_xts_agg, lag.max = 70,main="Figure : ACF plot of Victorian electricity consumption time series")
+
+```
+
+Because a wave pattern with clear significant lags was seen in the acf plot above and because the general time series plot shows clearly repeating patterns in July and January each year it and therefore non-stationary which will be further investigated.Using the ACF plot the amount of lags between each peak in the observed ossification pattern can be used to determine frequency.
+
+<center>
+![Figure X: Calculating frequency](C:\Users\MattJ\OneDrive - RMIT University\SEM 4\Time series\Vic_energy_production\Lags.png)
+
+</center>
+It can be seen that peaks occur at lags 1 , 12 , 24 etc. which suggest the seasonality of the series exhibits a frequency of approximately 12. This also is expected in terms of the context of the problem as energy usage is likely to go up every winter and start of summer. Because of this the frequency of 12 will be embdedded into the time series itself. 
+
+
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+
+# Convert to ts object so that we can add frequency:
+Data <- df                                  # Duplicate data
+Data$year <- strftime(Data$date, "%Y")    # Create year column
+Data$month <- strftime(Data$date, "%m")   # Create month column
+
+Data_agg <- aggregate(`demand` ~ month + year,       # Aggregate data
+                        Data,
+                        FUN = sum)
+# Convert data into a time series object
+Data_ts_agg = matrix(Data_agg$`demand`)
+Data_ts_agg = as.vector(t(Data_ts_agg))
+
+
+Data_ts_agg <- ts(Data_ts_agg,frequency=12,start =c(2015,1),end =c(2020,9) )
+plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
+     main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
+
+
+```
+
+
+
+# 3. Data transformations
+
+Because the acf and pacf plots indicate the presence of trends in the data (downward trends) and because the days exhibited both non-stationarity and non-normality, it will be likely transformations will need to be performed to remove this trend. Because Log transformations are generally used for variance stabilisation, a more general transformation called Box-Cox was tested.
+
+```{r}
+# As the data is not normal a box cox transformation will be used to see if this improves normality
+BC = BoxCox.ar(Data_ts_agg, lambda = seq(-2, 6, by = 0.1))
+title(main = "Figure X: Optimal BoxCox transformation")
+
+```
+
+```{r}
+lambda <- BC$lambda[which(max(BC$loglike) == BC$loglike)]
+lambda
+```
+The optimal value of lambda in this instance is 3.1
+
+```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+# Apply box cox transformation to time series and see if normality has improved
+Data_ts_agg_BC = (Data_ts_agg^lambda-1)/lambda
+#Plot the Time Series:
+plot(Data_ts_agg_BC,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
+     main="Figure X:Time Series of Victoria energy demand (aggregated monthly)")
+
+```
+
+As can be seen in figure X above, the BoxCox transformation does not appear to have had much effect on the time series.
+
+```{r}
+Stationary_tests(Data_ts_agg_BC)
+```
+
+It can be seen in both the ADF and pp test above, the BoxCox transformation slightly increased the stationary of the time series.
+
+```{r}
+# Check if normality has been improved
+Normalitytests(Data_ts_agg_BC,"Figure X: QQ plot of BC Victorian electricity consumption time series")
+```
+
+Based on the results of the Shapiro-Wilk test, it is observed that the Box-Cox transformation has made the time series less normal, as indicated by a p-value of 0.02. Consequently, since the transformation has had minimal impact on achieving stationarity and improving normality, it will not be utilized for the model.
+
+Given that the model was not stationary, an initial first differencing will be employed. This differencing approach aims to remove any underlying trend present in the data and make it stationary, which is a crucial requirement for many time series models.
+
+```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+# applying first differencing
+diff.Data_ts_agg <- diff(Data_ts_agg)
+par(mfrow=c(1,1))
+plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure X: Time series plot of differenced
+     Electricity demand.')
+```
+
+Upon initial inspection of the first differenced time series plot, it is observed that there are no apparent trends or changing variances. This suggests that the first differencing alone might be sufficient to make the time series stationary.
+
+```{r}
+# Use adf test on differenced series
+Stationary_tests(diff.Data_ts_agg)
+```
+Based on the results of the Augmented Dickey-Fuller (ADF) test, the p-value of 0.01 is less than the significance level of 0.05. Thus, the null hypothesis of non-stationarity can be rejected, and the differenced series can be considered stationary at a 95% confidence level.
+
+While the Phillips-Perron (PP) test may have yielded a p-value less than 0.05, it is important to note that the ADF and KPSS tests both agree on the stationarity of the differenced series. When multiple tests produce conflicting results, it is common practice to rely on the consensus among different tests. In this case, since the ADF and KPSS tests align in indicating stationarity, it is reasonable to assume the series is stationary.
+
+
+
+```{r}
+# Test for normality of difference plot 
+Normalitytests(diff.Data_ts_agg,"Figure X: QQ plot of difference time series")
+```
+The Shapiro-Wilk test resulted in a p-value greater than 0.05, indicating that, under the 95% confidence level, we can assume normality of the data. This is beneficial when fitting time series models because many models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average), assume normality of the residuals.
+
+
+```{r}
+# ACF and PACF to find period of differenced series
+par(mfrow=c(1,2))
+acf(diff.Data_ts_agg, lag.max = 70, main="Figure X: ACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+pacf(diff.Data_ts_agg, lag.max = 70,main="Figure X: PACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+
+```
+from the acf and pacf plots above you can see that significant lags are still occurring at with slightly reduced wave-like pattern. The significant lags in the ACF plot indicate that past values of the time series are correlated with the current value, further indicating the presence of a seasonal pattern. Considering both the ACF and PACF, it becomes evident that the data still exhibits seasonality and trend components. These components need to be properly accounted for in subsequent modeling steps to ensure accurate forecasting and capturing the underlying patterns.
+
+Therefore, it is crucial to incorporate appropriate seasonal and trend models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average) or other techniques designed to handle time series data with seasonal and trend components.
+
+# 4. Model specification
+
+The model used to forecast this dataset will be a SARIMA model. This is because there is clear seasonality in the monthly aggregated time series with a period of 12 months. There is also constant variance with no clusters of high variance and therefore a GARCH model is not suitable for this time series. To begin finding possible PDQ and pdq parameters for the SARIMA model, first the seasonal component must be modeled by finding the P and Q values. The residuals analysis approach was used to find possible seasonal P and Q values.
+
+
+
+### Residual Analysis
+
+# To deal with the season trend effect, we will fit an intial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
+
+
+```{r}
+# Model 1 with first seasonal differencing
+m1.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,0)
+```
+It can be seen in the Time series plot of the residuals plotted above, there is no obvious seasonal component and therefore this model can likelely account fore the seasonality in the time series. It can be seen in the ACF plot in figure X above that there is a significant lag on lag 1. There is no significant lags on shown on the PACF plot shown in figure x above. Therefore the model will be updated with a seasonal MA order of 1.
+
+
+
+```{r}
+# Model 2 SAMRA(0,1) with first seasonal differencing
+m2.ts<-Plot_Model(Data_ts_agg,2,"X",0,0,0,0,1,1)
+```
+
+The residual plot of model 2 can be seen in figure X above, similarly to model one it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the first lag in the ACF shown in figure X above therefore for Model 3, Q will be updated to 2 and checked if there is still a significant lag.
+
+
+```{r}
+# Model 3 SAMRA(0,2) with first seasonal differencing
+m3.ts<-Plot_Model(Data_ts_agg,3,"X",0,0,0,0,1,2)
+```
+The residual plot of model 2 can be seen in figure X above, similarly to model one it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the first lag in the ACF shown in figure X above therefore for Model 3, Q will be updated to 2 and checked if there is still a significant lag.
+
+significant lag at acf 2 so trying with q =3
+
+```{r}
+# Model 4 SAMRA(0,3) with first seasonal differencing
+m4.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,3)
+```
+
+
+
+```{r}
+adf.test(residuals(m4.ts))
+pp.test(residuals(m4.ts))
+kpss.test(residuals(m4.ts))
+```
+For the Dickey-Fuller Test above, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected and there is statistically significant stationarity in the data. 
+
+
+It can be seen on the ADF test above, the p-value of 0.3 is greater than 0.3 and therefore the null hypothesis cannot be rejected and the m4.ts IS stationary.
+
+PP TEST ALSO CONFIRMS STATIONARITY 
+
+
+
+No significant lags can conclude we have removed the seasonal trend 
+
+
+```{r}
+# Base model for BIC and eacf
+base.ts<-Plot_Model(Data_ts_agg,1,"X",0,1,0,0,1,3)
+
+adf.test(residuals(base.ts))
+
+
+```
+
+
+
+Now we will look at the lags before the first significant lag. --> there is 1 significant lags in acf and 2 signifcant lag in pacf
+- pacf could be a decreasing pattern 
+
+so we will ty to use a ARIMA(2,1) model.
+```{r}
+# Model 5  ARIMA(2,1)+ SAMRA(0,3) with first seasonal differencing
+m5.ts<-Plot_Model(Data_ts_agg,1,"X",2,1,1,0,1,3)
+
+```
+
+```{r}
+
+adf.test(residuals(base.ts))
+
+
+```
+
+```{r}
+# GET EACF
+res.base = residuals(base.ts)
+eacf(res.base)
+
+```
+
+# The tentative models are specified as 
+# SARIMA(0,1,2)x(0,1,3)_12
+# SARIMA(0,1,1)x(0,1,3)_12
+# SARIMA(1,1,1)x(0,1,3)_12
+# SARIMA(1,1,2)x(0,1,3)_12
+# SARIMA(2,1,1)x(0,1,3)_12
+
+```{r}
+# BIC
+par(mfrow=c(1,1))
+bic_table = armasubsets(y=res.base,nar=5,nma=5,y.name='p',ar.method='ols')
+plot(bic_table)
+
+```
+# The tentative models are specified as 
+# SARIMA(0,1,5)x(0,1,3)_12
+# SARIMA(0,1,2)x(0,1,3)_12
+# SARIMA(0,1,3)x(0,1,3)_12
+
+TOTAL SET of possible models:
+# SARIMA(0,1,1)x(0,1,3)_12
+# SARIMA(1,1,1)x(0,1,3)_12
+# SARIMA(1,1,2)x(0,1,3)_12
+# SARIMA(2,1,1)x(0,1,3)_12
+# SARIMA(0,1,5)x(0,1,3)_12
+# SARIMA(0,1,2)x(0,1,3)_12
+# SARIMA(0,1,3)x(0,1,3)_12
+
+# 5. Parameter Estimation
+Parameter.estimation <- function(data,order1,order2,method
+- find out if 
+## 5.1 Parameter significance
+
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="ML")
+
+```
+- not normal 
+- good acf 
+- Only one significant paramters 
+```{r}
+# CSS METHOD 
+m4_011_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="CSS")
+
+```
+- not normal 
+- good acf 
+- Only two significant parameters 
+
+
+
+IT is evident that the seasonal component isnt being captured as non of the SIMRA paramters are significant. thereofore the P and Q values will be altered using overfitting to see which values ar optimal. 
+
+# 1 - reducing Q value by 1
+
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,2),method="ML")
+
+```
+# 1 - reducing Q value by 2
+
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,1),method="ML")
+
+```
+# 1 - reducing Q value by 3 and increasing P
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML")
+
+```
+# 1 - reducing Q value by 3 and increasing P
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML")
+
+```
+# 1 -  increasing P by 1
+```{r}
+# SARIMA(0,1,1)x(0,1,3)_12
+# ML METHOD 
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(2,1,0),method="ML")
+
+```
+This is thew most optimal model as increasing any further causes and reduction in the number of significant parameters 
+
+
+
+
+
+
+
+```{r}
+# SARIMA(1,1,1)x(2,1,0)_12
+# ML METHOD 
+base_111_ML <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML")
+
+```
+- not normal 
+- good acf 
+- Only one additional significant parameters 
+```{r}
+# CSS METHOD 
+base_111_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="CSS")
+
+```
+- not normal 
+- good acf 
+- all significant paramters
+
+```{r}
+# SARIMA(1,1,2)x(0,1,3)_12
+# ML METHOD 
+base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="ML")
+
+```
+- not normal 
+- good acf 
+- no significant parameters
+
+```{r}
+# SARIMA(1,1,2)x(0,1,3)_12
+# CSS METHOD 
+base_112_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="CSS")
+
+```
+
+
+
+- not normal 
+- good acf 
+- no significant parameters
+
+
+```{r}
+# SARIMA(2,1,1)x(0,1,3)_12
+# ML METHOD 
+base_211_ML <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="ML")
+
+```
+- not normal 
+- good acf 
+- only one significant parameters
+```{r}
+# SARIMA(2,1,1)x(0,1,3)_12
+# CSS METHOD 
+base_211_CSS <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="CSS")
+
+```
+- not normal 
+- 1 significant lag in acf
+- all significant parameters
+```{r}
+# SARIMA(0,1,5)x(0,1,3)_12
+base_015_ML <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="ML")
+```
+- not normal 
+- only 1 significant parameter
+```{r}
+# SARIMA(0,1,5)x(0,1,3)_12
+base_015_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="CSS")
+```
+- not normal 
+- only 2 significant parameter
+
+
+
+```{r}
+# SARIMA(0,1,2)x(0,1,3)_12
+base_012_ML <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML")
+```
+- not normal 
+- only 1 significant parameter
+```{r}
+# SARIMA(0,1,2)x(0,1,3)_12
+base_012_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="CSS")
+```
+- not normal 
+- only 2 significant parameters
+```{r}
+# SARIMA(0,1,3)x(0,1,3)_12
+base_013_ML <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(2,1,0),method="ML")
+```
+- not normal 
+- 3 significant parameters
+
+```{r}
+# SARIMA(0,1,3)x(0,1,3)_12
+base_013_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,3),method="CSS")
+```
+- not normal 
+- only 2 significant parameters
+
+## 5.2 BIC/AIC values
+
+```{r}
+sc.AIC = AIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_ML,base_013_ML)
+
+sc.BIC = BIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_ML ,base_013_ML)
+
+# sc.BIC = AIC(m5_014.landing, m5_015.landing, m5_614.landing, m5_114.landing, 
+#              m5_115.landing, m5_1012.landing, m5_412.landing, m5_112.landing,
+#              k = log(length(NMFS_Landings.ts)))
+
+sort.score(sc.AIC, score = "aic")
+sort.score(sc.BIC, score = "bic")
+```
+## 5.2 Accuracy Scores
+```{r}
+
+
+Sm4_011_ML <- accuracy(m4_011_ML)[1:7]
+Sbase_111_ML <- accuracy(base_111_ML)[1:7]
+Sbase_112_ML <- accuracy(base_112_ML)[1:7]
+Sbase_211_ML <- accuracy(base_211_ML)[1:7]
+Sbase_015_ML <- accuracy(base_015_ML)[1:7]
+Sbase_012_ML <- accuracy(base_012_ML)[1:7]
+Sbase_013_ML <- accuracy(base_013_ML)[1:7]
+
+df.Smodels <- data.frame(
+  rbind(Sm4_011_ML, Sbase_111_ML, Sbase_112_ML, Sbase_211_ML, 
+        Sbase_015_ML, Sbase_012_ML, Sbase_013_ML)
+)
+colnames(df.Smodels) <- c("ME", "RMSE", "MAE", "MPE", "MAPE", 
+                          "MASE", "ACF1")
+rownames(df.Smodels) <- c("SARIMA(0,1,1)x(2,1,0)_12","SARIMA(1,1,1)x(2,1,0)_12", "SARIMA(1,1,2)x(2,1,0)_12", "SARIMA(2,1,1)x(2,1,0)_12", 
+                          "SARIMA(0,1,5)x(2,1,0)_12", "SARIMA(0,1,2)x(2,1,0)_12", "SARIMA(0,1,3)x(2,1,0)_12")
+round(df.Smodels,  digits = 3)
+```
+
+
+
+
+# 6. Model Diagnostics
+```{r}
+m4_111 <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML")
+
+```
+
+# AR(1) is NOT  significant.
+
+```{r}
+m4_012 <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML")
+
+```
+# MA(2) is NOT  significant.
+
+
+
+# 7. Forecasting
+```{r}
+m5_1012.landingA = Arima(Data_ts_agg,order=c(0,1,1),seasonal=list(order=c(2,1,0), period=12), 
+                          method = "ML")
+# Notice that I use lambda = 0 and send NMFS_Landings.ts instead of log(NMFS_Landings.ts) to get Arima() function to do the transformation.
+# This way, I will get the forecasts in the original scale.
+preds1 = forecast(m5_1012.landingA,  h = 48)
+preds1
+plot(preds1)
+
+
+```
+
+
+# 8. Conclusion
+
+# 9. References
