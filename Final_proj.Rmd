@@ -135,6 +135,7 @@ residual.analysis <- function(model, std = TRUE,start = 2, class = c("ARIMA","GA
   par(mfrow=c(1,1))
 }
 
+
 Parameter.estimation <- function(data,order1,order2,method){
     model = Arima(data,order=order1,seasonal=list(order=order2, period=12),method = method)
     
@@ -142,6 +143,7 @@ Parameter.estimation <- function(data,order1,order2,method){
     print(coeftest(model))
     return(model)
 }
+
 
 Stationary_tests <- function(data){
   print(adf.test(data))
@@ -396,7 +398,9 @@ The model used to forecast this dataset will be a SARIMA model. This is because 
 
 ### Residual Analysis
 
+
 To deal with the season trend effect, we will fit an initial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
+
 
 
 ```{r}
@@ -419,6 +423,7 @@ The residual plot of model 2 can be seen in figure X above, similarly to model o
 # Model 3 SAMRA(0,2) with first seasonal differencing
 m3.ts<-Plot_Model(Data_ts_agg,3,"X",0,0,0,0,1,2)
 ```
+
 The residual plot of model 2 can be seen in figure X above, similarly to model two it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the second lag in the ACF shown in figure X above as well as the PACF shown in figure X above. Therefore for Model 3, Q will be updated to 3 for model 4 and checked if there is still a significant lag.
 
 
@@ -431,13 +436,16 @@ m4.ts<-Plot_Model(Data_ts_agg,4,"X",0,0,0,0,1,3)
 
 The residual plot of model 4 can be seen in figure X above, similarly to model 3 it can be seen there is no obvious seasonal component in the residuals.There is also no significant lags in the PACF or ACF plots shown above and therefore P = 0 and Q = 3 can be considered to model the seasonal component of the monthly aggregated time series.
 
+
 ```{r}
 Stationary_tests(residuals(m4.ts))
 
 ```
+
 For the Dickey-Fuller Test above, a p-value of 0.32 is greater than 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected and there is statistically significant stationarity in the data. This also also shown for the pp test value of 0.01 which is less than 0.05 abd therefore also shows the time series is stationary.
 
 The KPSS test however does not show stationarity as the p-value of 0.1 is greater than 0.05.
+
 
 
 ```{r}
@@ -448,6 +456,7 @@ adf.test(residuals(base.ts))
 
 
 ```
+
 
 Now we will look at the lags before the first significant lag. --> there is 1 significant lags in acf and 2 signifcant lag in pacf
 - pacf could be a decreasing pattern 
@@ -677,6 +686,12 @@ base_013_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,3),method="CSS")
 
 ## 5.2 BIC/AIC values
 
+
+An alternative method to evaluate and compare the suitability of various SIMRA models is by utilizing AIC (Akaike Information Criterion) and BIC (Bayesian Information Criterion) scores. In both instances, lower values of AIC and BIC indicate better-fitting models.
+
+AIC and BIC evaluate models based on their goodness of fit and complexity. Both criteria consider the likelihood of the data fitting the model and penalize models for their complexity, effectively avoiding overfitting. By striking a balance between fit and complexity, AIC and BIC provide a comprehensive assessment of model quality.
+
+
 ```{r}
 sc.AIC = AIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_ML,base_013_ML)
 
@@ -689,7 +704,17 @@ sc.BIC = BIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_
 sort.score(sc.AIC, score = "aic")
 sort.score(sc.BIC, score = "bic")
 ```
+
+Based on the AIC and BIC tables mentioned, the 'm4_011_ML' model attained the lowest AIC and BIC values, indicating that the SARIMA(0,1,1)x(0,1,3)_12 model is the best fitting model according to these scores. On the other hand, the SARIMA(0,1,5)x(0,1,3)_12 model exhibited the highest values, suggesting a poorer fit.
+
+
 ## 5.2 Accuracy Scores
+
+In addition to AIC and BIC, another approach to comparing the fit or accuracy of models is by utilizing various accuracy scores. These scores include metrics such as ME (Mean Error), RMSE (Root Mean Squared Error), MAE (Mean Absolute Error), MPE (Mean Percentage Error), MAPE (Mean Absolute Percentage Error), MASE (Mean Absolute Scaled Error), and ACF1 (Autocorrelation Function at lag 1).
+
+Lower values for these accuracy metrics indicate a better fit in terms of the accuracy of the model. By assessing these metrics, one can gauge how well the model predicts or approximates the observed data. The selection of the model with the lowest values for these accuracy scores suggests its superior performance in accurately capturing the underlying patterns and trends in the data.
+
+
 ```{r}
 
 
@@ -712,6 +737,17 @@ rownames(df.Smodels) <- c("SARIMA(0,1,1)x(2,1,0)_12","SARIMA(1,1,1)x(2,1,0)_12",
 round(df.Smodels,  digits = 3)
 ```
 
+
+Based on the table provided, it is observed that the SARIMA(1,1,1)x(2,1,0)_12 model achieved the best ME (Mean Error) and MPE (Mean Percentage Error) scores, indicating a better accuracy in terms of these metrics. On the other hand, the SARIMA(0,1,3)x(2,1,0)_12 model attained the best scores in terms of RMSE (Root Mean Squared Error), MAE (Mean Absolute Error), MAPE (Mean Absolute Percentage Error), and MASE (Mean Absolute Scaled Error).
+
+In contrast, the SARIMA(0,1,1)x(2,1,0)_12 model did not achieve the best accuracy values and was ranked fourth or fifth in most categories.
+
+
+## 5.3 Summary
+
+After conducting parameter significance and residuals analysis, it was observed that the SARIMA(0,1,1)x(2,1,0)_12 model had the most significant parameters, indicating its suitability as an optimal fit. Additionally, the model achieved the lowest AIC and BIC scores, further supporting its strong performance.
+
+Although the SARIMA(0,1,1)x(2,1,0)_12 model did not achieve the best accuracy scores, it is crucial to consider multiple model diagnostic tools for a comprehensive evaluation. By taking into account the consensus among these diagnostic tools, the SARIMA(0,1,1)x(2,1,0)_12 model emerges as the best choice for forecasting.
 
 
 
@@ -743,6 +779,51 @@ plot(preds1)
 
 
 ```
+
+
+
+To assess whether the SARIMA(0,1,1)x(2,1,0)_12 model is not underfit, we can employ model overfitting as an additional diagnostic tool. this approach involves increasing the values of both p (autoregressive order) and q (moving average order) in the SARIMA model. By doing so, we can examine if the number of significant parameters and the quality of fit improve, indicating potential underfitting in the initial SARIMA(0,1,1)x(2,1,0)_12 model.
+
+
+```{r}
+# Increasing the value of P
+m4_111 <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML")
+
+```
+By increasing the value of p the AR(1) is not significant , meaning no imporvement of fit has occured by overfitting the model in this direction.
+
+
+```{r}
+m4_012 <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML")
+
+```
+By increasing the value of p the MA(1) is not significant , meaning no improvement of fit has occurred by overfitting the model in this direction.
+
+
+
+Upon increasing both the p and q values and evaluating the resulting models, no significant improvement was observed in the overall model fit. This suggests that the initial SARIMA(0,1,1)x(2,1,0)_12 model is not underfit. Consequently, there is no indication of an insufficient capturing of the underlying patterns and dynamics in the data.
+
+Since increasing the p and q values did not lead to an improved fit, it can be concluded that the SARIMA(0,1,1)x(2,1,0)_12 model is already well-suited for the dataset at hand. This confirmation allows for greater confidence in proceeding with forecasting tasks using the established model.
+
+
+# 7. Forecasting
+
+
+```{r}
+m5_1012.landingA = Arima(Data_ts_agg,order=c(0,1,1),seasonal=list(order=c(2,1,0), period=12), 
+                          method = "ML")
+# Notice that I use lambda = 0 and send NMFS_Landings.ts instead of log(NMFS_Landings.ts) to get Arima() function to do the transformation.
+# This way, I will get the forecasts in the original scale.
+preds1 = forecast(m5_1012.landingA,  h = 48)
+preds1
+plot(preds1)
+
+
+```
+
+From the forecast provided, it is evident that the SARIMA model SARIMA(0,1,1)x(2,1,0)_12 successfully captures the seasonal trends present in the data as well as the slowly decreasing trend. This indicates that the model is effectively accounting for the patterns and dynamics in the dataset.
+
+However, it is important to note that as the forecasting horizon extends further into the future, the confidence interval for the predictions widens significantly. This widening of the confidence interval is expected, primarily due to insufficient data caused by data loss during monthly aggregation. With less historical data available for modeling and forecasting, there is increased uncertainty and variability in the predictions.
 
 
 # 8. Conclusion
