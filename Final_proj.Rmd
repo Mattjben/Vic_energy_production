@@ -387,50 +387,49 @@ from the acf and pacf plots above you can see that significant lags are still oc
 
 Therefore, it is crucial to incorporate appropriate seasonal and trend models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average) or other techniques designed to handle time series data with seasonal and trend components.
 
+
 # 4. Model specification
 
-* TALK ABOUT WHAT MODEL WE CHOSE 
+The model used to forecast this dataset will be a SARIMA model. This is because there is clear seasonality in the monthly aggregated time series with a period of 12 months. There is also constant variance with no clusters of high variance and therefore a GARCH model is not suitable for this time series. To begin finding possible PDQ and pdq parameters for the SARIMA model, first the seasonal component must be modeled by finding the P and Q values. The residuals analysis approach was used to find possible seasonal P and Q values.
 
-```{r}
-# ACF and PACF to find period of differenced series
-par(mfrow=c(1,2))
-acf(diff.Data_ts_agg, main="Figure X: ACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
-pacf(diff.Data_ts_agg, main="Figure X: PACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
 
-```
-
-# WHAT IS THE POINT OF THIS?
-It can be seen in figure X above, the ACF plot appears to show a period of 6 months. This can be used for the first seasonal differencing.
 
 ### Residual Analysis
 
-# In order to deal with the season trend effect, we will fit an intial plain model with the first seasonal difference to see if the seasonal trend is effected and to what extent. 
+# To deal with the season trend effect, we will fit an intial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
 
 
 ```{r}
 # Model 1 with first seasonal differencing
 m1.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,0)
 ```
-Periodic behavior has been removed in time series data 
+It can be seen in the Time series plot of the residuals plotted above, there is no obvious seasonal component and therefore this model can likelely account fore the seasonality in the time series. It can be seen in the ACF plot in figure X above that there is a significant lag on lag 1. There is no significant lags on shown on the PACF plot shown in figure x above. Therefore the model will be updated with a seasonal MA order of 1.
 
-- Significan LAG a 1 in ACF
 
 
 ```{r}
 # Model 2 SAMRA(0,1) with first seasonal differencing
-m2.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,1)
+m2.ts<-Plot_Model(Data_ts_agg,2,"X",0,0,0,0,1,1)
 ```
-significant lag at acf 1 so trying with q =2 
+
+The residual plot of model 2 can be seen in figure X above, similarly to model one it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the first lag in the ACF shown in figure X above therefore for Model 3, Q will be updated to 2 and checked if there is still a significant lag.
+
 
 ```{r}
 # Model 3 SAMRA(0,2) with first seasonal differencing
-m3.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,2)
+m3.ts<-Plot_Model(Data_ts_agg,3,"X",0,0,0,0,1,2)
 ```
+The residual plot of model 2 can be seen in figure X above, similarly to model one it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the first lag in the ACF shown in figure X above therefore for Model 3, Q will be updated to 2 and checked if there is still a significant lag.
+
 significant lag at acf 2 so trying with q =3
+
 ```{r}
 # Model 4 SAMRA(0,3) with first seasonal differencing
 m4.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,3)
 ```
+
+
+
 ```{r}
 adf.test(residuals(m4.ts))
 pp.test(residuals(m4.ts))
@@ -683,6 +682,7 @@ base_013_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,3),method="CSS")
 ```
 - not normal 
 - only 2 significant parameters
+
 
 ## 5.2 BIC/AIC values
 
