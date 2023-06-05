@@ -457,9 +457,7 @@ adf.test(residuals(base.ts))
 
 ```
 
-
-Now we will look at the lags before the first significant lag. --> there is 1 significant lags in acf and 2 signifcant lag in pacf
-- pacf could be a decreasing pattern 
+To find initial p and q values, the ACF and PACF plots will be analysed. A first differencing will be used as per the ADF test above with a p-value of 0.01, the differenced series can be considered stationary.Looking at the lags in the ACF and PACF plots in figure x and x above, there is 1 significant lag in acf and 2 signifcant lags in pacf. There could be a decreasing pattern.
 
 so we will ty to use a ARIMA(2,1) model.
 ```{r}
