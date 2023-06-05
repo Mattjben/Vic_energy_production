@@ -17,8 +17,8 @@ knitr::opts_chunk$set(echo = TRUE)
 <center>
 # Energy Demand Victoria 
 ##### MATH1318: Final Project \n\n
-Matthew Bentham 3923076 \n
-John Murrowood 3923075 \n
+Matthew Bentham S3923076 \n
+John Murrowood S3923075 \n
 </center>
 
 ---
@@ -62,7 +62,6 @@ library(dplyr)
 library(ggfortify)
 library(xts)
 library(TSA)
-
 library(FitAR)
 library(tsbox)
 library(lmtest)
