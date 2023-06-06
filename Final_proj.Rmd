@@ -396,7 +396,7 @@ The model used to forecast this dataset will be a SARIMA model. This is because 
 
 
 
-### Residual Analysis
+## 4.1 Residual Approach
 
 
 To deal with the season trend effect, we will fit an initial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
@@ -457,6 +457,7 @@ adf.test(residuals(base.ts))
 
 ```
 
+
 To find initial p and q values, the ACF and PACF plots will be analysed. A first differencing will be used as per the ADF test above with a p-value of 0.01, the differenced series can be considered stationary.Looking at the lags in the ACF and PACF plots in figure x and x above, there is 1 significant lag in ACF and 2 significant lags in PACF. There could be a decreasing pattern.
 
 Therefore, possible p and q values for the ARIMA section can be 2 and 1 respectively.
@@ -479,12 +480,12 @@ eacf(res.base)
 
 ```
 
-# The tentative models found using EACF table are specified as 
-# SARIMA(0,1,2)x(0,1,3)_12
-# SARIMA(0,1,1)x(0,1,3)_12
-# SARIMA(1,1,1)x(0,1,3)_12
-# SARIMA(1,1,2)x(0,1,3)_12
-# SARIMA(2,1,1)x(0,1,3)_12
+The tentative models found using EACF table above , with e point (0,1) being the top leftmost 'o' are specified as:
+- SARIMA(0,1,2)x(0,1,3)_12
+- SARIMA(0,1,1)x(0,1,3)_12
+- SARIMA(1,1,1)x(0,1,3)_12
+- SARIMA(1,1,2)x(0,1,3)_12
+- SARIMA(2,1,1)x(0,1,3)_12
 
 ```{r}
 # BIC
@@ -493,23 +494,24 @@ bic_table = armasubsets(y=res.base,nar=5,nma=5,y.name='p',ar.method='ols')
 plot(bic_table)
 
 ```
-# The tentative models found using the BIC table are specified as 
-# SARIMA(0,1,5)x(0,1,3)_12
-# SARIMA(0,1,2)x(0,1,3)_12
-# SARIMA(0,1,3)x(0,1,3)_12
+The tentative models found using the BIC table are specified as:
+- SARIMA(0,1,5)x(0,1,3)_12
+- SARIMA(0,1,2)x(0,1,3)_12
+- SARIMA(0,1,3)x(0,1,3)_12
 
-TOTAL SET of possible models:
-# SARIMA(0,1,1)x(0,1,3)_12
-# SARIMA(1,1,1)x(0,1,3)_12
-# SARIMA(1,1,2)x(0,1,3)_12
-# SARIMA(2,1,1)x(0,1,3)_12
-# SARIMA(0,1,5)x(0,1,3)_12
-# SARIMA(0,1,2)x(0,1,3)_12
-# SARIMA(0,1,3)x(0,1,3)_12
+overall the TOTAL SET of possible models:
+- SARIMA(0,1,1)x(0,1,3)_12
+- SARIMA(1,1,1)x(0,1,3)_12
+- SARIMA(1,1,2)x(0,1,3)_12
+- SARIMA(2,1,1)x(0,1,3)_12
+- SARIMA(0,1,5)x(0,1,3)_12
+- SARIMA(0,1,2)x(0,1,3)_12
+- SARIMA(0,1,3)x(0,1,3)_12
 
-# 5. Parameter Estimation
+# 5. Model Fitting and Diagnostic Checking
 
 ## 5.1 Parameter significance
+
 
 ```{r}
 # SARIMA(0,1,1)x(0,1,3)_12
@@ -750,35 +752,6 @@ Although the SARIMA(0,1,1)x(2,1,0)_12 model did not achieve the best accuracy sc
 
 
 # 6. Model Diagnostics
-```{r}
-m4_111 <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML")
-
-```
-
-# AR(1) is NOT  significant.
-
-```{r}
-m4_012 <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML")
-
-```
-# MA(2) is NOT  significant.
-
-
-
-# 7. Forecasting
-```{r}
-m5_1012.landingA = Arima(Data_ts_agg,order=c(0,1,1),seasonal=list(order=c(2,1,0), period=12), 
-                          method = "ML")
-# Notice that I use lambda = 0 and send NMFS_Landings.ts instead of log(NMFS_Landings.ts) to get Arima() function to do the transformation.
-# This way, I will get the forecasts in the original scale.
-preds1 = forecast(m5_1012.landingA,  h = 48)
-preds1
-plot(preds1)
-
-
-```
-
-
 
 To assess whether the SARIMA(0,1,1)x(2,1,0)_12 model is not underfit, we can employ model overfitting as an additional diagnostic tool. this approach involves increasing the values of both p (autoregressive order) and q (moving average order) in the SARIMA model. By doing so, we can examine if the number of significant parameters and the quality of fit improve, indicating potential underfitting in the initial SARIMA(0,1,1)x(2,1,0)_12 model.
 
@@ -825,5 +798,7 @@ However, it is important to note that as the forecasting horizon extends further
 
 
 # 8. Conclusion
+
+
 
 # 9. References
