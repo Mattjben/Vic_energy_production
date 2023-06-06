@@ -392,7 +392,7 @@ Therefore, it is crucial to incorporate appropriate seasonal and trend models, s
 
 
 
-# 4 Simple deterministic model (Linear + Seaonal model)
+# 4. Simple deterministic model (Linear + Seaonal model)
 
 Before delving into more complex SARIMA models, we will start by fitting and analyzing a simpler deterministic model. The chosen model for this initial analysis is a hybrid additive model, which combines a seasonal model to capture yearly seasonality and a linear model to capture the decreasing trend.
 
@@ -469,7 +469,7 @@ legend("topright", legend =  c("Data","5% forecast limits", "Forecasts","Fitted 
 
 From the above plot we can see that the predictions do seem to follow the same very slow downward trend and the rough seasonal variations in the data. The red line represents the fitted values for the next 10months , while the blue lines indicate the upper and lower confidence intervals for the fitted values. For the simplicity of the model this is an adequate forecast , however its precision is effected by the stochastic nature of the seasonal trends as the difference in peaks between years does not seem to follow a specific trend. 
 
-# 5 SARIMA model
+# 5. SARIMA model
 
 The more complex model that will be used to forecast this dataset will be a SARIMA model. This is because there is clear seasonality in the monthly aggregated time series with a period of 12 months. There is also constant variance with no clusters of high variance and therefore a GARCH model is not suitable for this time series. This model is therefore more likely to pick up on the slight year deviations in values.To begin finding possible PDQ and pdq parameters for the SARIMA model, first the seasonal component must be modeled by finding the P and Q values. The residuals analysis approach was used to find possible seasonal P and Q values.
 
