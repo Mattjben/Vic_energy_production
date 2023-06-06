@@ -278,7 +278,7 @@ acf(Data_xts_agg, lag.max = 70,main="Figure : ACF plot of Victorian electricity 
 Because a wave pattern with clear significant lags was seen in the acf plot above and because the general time series plot shows clearly repeating patterns in July and January each year it and therefore non-stationary which will be further investigated.Using the ACF plot the amount of lags between each peak in the observed ossification pattern can be used to determine frequency.
 
 <center>
-<!-- ![Figure X: Calculating frequency](C:\Users\MattJ\OneDrive - RMIT University\SEM 4\Time series\Vic_energy_production\Lags.png) -->
+![Figure X: Calculating frequency](C:\Users\MattJ\OneDrive - RMIT University\SEM 4\Time series\Vic_energy_production\Lags.png)
 
 </center>
 It can be seen that peaks occur at lags 1 , 12 , 24 etc. which suggest the seasonality of the series exhibits a frequency of approximately 12. This also is expected in terms of the context of the problem as energy usage is likely to go up every winter and start of summer. Because of this the frequency of 12 will be embdedded into the time series itself. 
