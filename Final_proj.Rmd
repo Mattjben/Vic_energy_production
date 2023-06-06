@@ -551,29 +551,31 @@ It can be seen for the above model the MA(1) value is significant, however not t
 m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,1),method="ML")
 
 ```
+
+It can be seen for the above model the MA(1) value is significant, however not the seasonal Q value. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.01 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. 
+
 # 1 - reducing Q value by 3 and increasing P
+
 ```{r}
 # SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
 m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML")
 
 ```
-# 1 - reducing Q value by 3 and increasing P
-```{r}
-# SARIMA(0,1,1)x(0,1,3)_12
-# ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML")
 
-```
+It can be seen for the above model the MA(1) value is significant and so is the seasonal AR(1) value. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.004 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test.
+
+
 # 1 -  increasing P by 1
+
 ```{r}
 # SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
 m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(2,1,0),method="ML")
 
 ```
-This is thew most optimal model as increasing any further causes and reduction in the number of significant parameters 
 
+It can be seen for the above model the MA(1) value is significant and so is the seasonal AR(1) and AR(2) values. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.015 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. Due to the higher number of significant seasonal perameters in this model compared to previous, it is more likely to capture the seasonal trend to a greater degree. This is thew most optimal model as increasing any further causes and reduction in the number of significant parameters. The updated seasonal perameters will be used now to check the ARIMA p and q values for previously identified possible models.
 
 
 
