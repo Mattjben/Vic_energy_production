@@ -454,10 +454,10 @@ pred <- predict.lm(Hybridmodel,daysahead,interval='prediction') # Computing the 
 # plot forcasted values
 par(mfrow=c(1,1))
 plot(Data_ts_agg, main = "Figure X: 10 month forcast",ylab="Demand (MWh)",xlab='Year'
-     ,type='o',ylim = c(min(c(fitted(model3)-800000, as.vector(Data_ts_agg))),
-              max(c(fitted(model3)+800000, as.vector(Data_ts_agg)))),xlim=c(2015,2021.500))
+     ,type='o',ylim = c(min(c(fitted(Hybridmodel)-800000, as.vector(Data_ts_agg))),
+              max(c(fitted(Hybridmodel)+800000, as.vector(Data_ts_agg)))),xlim=c(2015,2021.500))
 
-points(t,predict.lm(model3),type='l',col='green') # superimpose the fit of model reg0 on the plot of
+points(t,predict.lm(Hybridmodel),type='l',col='green') # superimpose the fit of model reg0 on the plot of
 lines(ts(as.vector(pred[,1]), start = c(2020.667,1),frequency = 12), col="red", type="l")
 lines(ts(as.vector(pred[,2]), start = c(2020.667,1),frequency = 12), col="blue", type="l")
 lines(ts(as.vector(pred[,3]), start = c(2020.667,1),frequency = 12), col="blue", type="l")
