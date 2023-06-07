@@ -423,6 +423,110 @@ national holiday</li>
 <p><em>Note</em> : All code provided is written in Rstudio using R
 4.2.0</p>
 </div>
+<div id="functions-used" class="section level1">
+<h1>1.1 Functions used</h1>
+<pre class="r"><code>sort.score &lt;- function(x, score = c(&quot;bic&quot;, &quot;aic&quot;)){
+if (score == &quot;aic&quot;){
+x[with(x, order(AIC)),]
+} else if (score == &quot;bic&quot;) {
+x[with(x, order(BIC)),]
+} else {
+warning(&#39;score = &quot;x&quot; only accepts valid arguments (&quot;aic&quot;,&quot;bic&quot;)&#39;)
+}
+}
+
+Normalitytests &lt;-  function(data,title) {
+  # Create a QQ plot of the data
+  
+  qqnorm(y=data, main=title)
+  qqline(y=data, col=2, lwd=1, lty = 2)
+
+  # Perform a Shapiro-Wilk test on the data
+  shapiro.test(as.numeric(data))
+}
+
+Plot_Model &lt;- function(data,model_num,fignum,p,d,q,P,D,Q) {
+  
+  layout(matrix(c(1,1,2,3), nrow = 2, ncol = 2, byrow = TRUE))
+
+    
+  m.ts = Arima(data,order=c(p,d,q),seasonal=list(order=c(P,D,Q), period=12))
+  res.m = residuals(m.ts);  
+  
+  plot(res.m,xlab=&#39;Time&#39;,ylab=&#39;Residuals&#39;,main=combine_words(c(&quot;Figure &quot;, fignum, &quot;: model &quot; , model_num,&quot; residuals &quot;),sep = &quot;&quot;,
+  and = &quot;&quot;))
+ 
+  acf(res.m,lag.max=48, main=paste(&quot;ACF plot&quot;))
+  pacf(res.m,lag.max=48, main=paste(&quot;PACF plot&quot;))
+  
+ return(m.ts)
+}
+
+
+residual.analysis &lt;- function(model, fignum,std = TRUE,start = 2, class = c(&quot;ARIMA&quot;,&quot;GARCH&quot;,&quot;ARMA-GARCH&quot;, &quot;fGARCH&quot;)[1],method=&quot;&quot;,o1=&quot;&quot;,o2=&quot;&quot;){
+  library(TSA)
+  
+  if (class == &quot;ARIMA&quot;){
+    if (std == TRUE){
+      res.model = rstandard(model)
+    }else{
+      res.model = residuals(model)
+    }
+  }else if (class == &quot;GARCH&quot;){
+    res.model = model$residuals[start:model$n.used]
+  }else if (class == &quot;ARMA-GARCH&quot;){
+    res.model = model@fit$residuals
+  }else if (class == &quot;fGARCH&quot;){
+    res.model = model@residuals
+  }else {
+    stop(&quot;The argument &#39;class&#39; must be either &#39;ARIMA&#39; or &#39;GARCH&#39; &quot;)
+  }
+  par(mfrow=c(2,3), mar = c(1, 1,6, 2))
+  if (o1 != &quot;&quot;){
+  plot(res.model,type=&#39;o&#39;,ylab=&#39;Standardised residuals&#39;, main=&quot;Time series plot of standardised residuals&quot;)
+  mtext(combine_words(c(&quot;Figure &quot;, fignum, &quot;:  SARIMA&quot;,o1,o2,&quot; Residual Analysis (&quot;,method,&quot;)&quot;) ,sep = &quot;&quot;,
+  and = &quot;&quot;),             
+      side = 3,
+      line = -2,
+      outer = TRUE)}
+  else{plot(res.model,type=&#39;o&#39;,ylab=&#39;Standardised residuals&#39;, main=&quot;Time series plot of standardised residuals&quot;)
+  mtext(combine_words(c(&quot;Figure &quot;, fignum, &quot;: Residual Analysis&quot;) ,sep = &quot;&quot;,
+  and = &quot;&quot;),             
+      side = 3,
+      line = -2,
+      outer = TRUE)
+    
+  }
+  abline(h=0)
+  hist(res.model,main=&quot;Histogram of standardised residuals&quot;)
+  qqnorm(res.model,main=&quot;QQ plot of standardised residuals&quot;)
+  qqline(res.model, col = 2)
+  acf(res.model,main=&quot;ACF of standardised residuals&quot;)
+  print(shapiro.test(res.model))
+  k=0
+  LBQPlot(res.model, lag.max = 30, StartLag = k + 1, k = 0, SquaredQ = FALSE)
+  
+  par(mfrow=c(1,1))
+}
+
+
+Parameter.estimation &lt;- function(data,order1,order2,method,fignum){
+    model = Arima(data,order=order1,seasonal=list(order=order2, period=12),method = method)
+    
+    residual.analysis(model = model,fignum = fignum,method=method,o1=combine_words(c(&#39;(&#39;,combine_words(c(order1),sep = &quot;,&quot;,
+  and = &quot;&quot;),&#39;)&#39;),sep=&quot;&quot;,and=&quot;&quot;),o2=combine_words(c(&#39;(&#39;,combine_words(c(order2),sep = &quot;,&quot;,
+  and = &quot;&quot;),&#39;)&#39;),sep=&quot;&quot;,and=&quot;&quot;))
+    print(coeftest(model))
+    return(model)
+}
+
+
+Stationary_tests &lt;- function(data){
+  print(adf.test(data))
+  print(pp.test(data))
+  print(kpss.test(data))
+}</code></pre>
+</div>
 <div id="preliminary-analysis" class="section level1">
 <h1>2. Preliminary Analysis</h1>
 <div id="import-and-analyse-dataset" class="section level2">
@@ -848,7 +952,7 @@ produced a p-value of 0.154. This value is greater than 0.05, meaning
 under a 95% confidence level and the null hypothesis is NOT rejected,
 meaning no significant departure from normality was found.</p>
 <div id="forecast" class="section level2">
-<h2>5.2 forecast</h2>
+<h2>5.2 Forecast</h2>
 <pre class="r"><code>h &lt;- 0.8333333333333334 # 10 months ahead forecasts
 increment &lt;- 12 # Frequency is 7
 original.t &lt;- t

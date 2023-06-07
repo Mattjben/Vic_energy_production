@@ -2,11 +2,10 @@
 title: "Final Project"
 author: "Matthew Bentham and John Murrowood"
 date: "2023-04-30"
-output: 
-  
-    html_document:
-      fig_caption: true
-      
+output:
+  html_document:
+    fig_caption: yes
+  word_document: default
 css: style.css
 ---
 
@@ -70,7 +69,9 @@ library(knitr)
 library(forecast)
 ```
 
-```{r, include=FALSE, warning=FALSE}
+# 1.1 Functions used
+
+```{r, warning=FALSE}
 sort.score <- function(x, score = c("bic", "aic")){
 if (score == "aic"){
 x[with(x, order(AIC)),]
@@ -923,3 +924,7 @@ On the other hand, a simpler deterministic model that combined linear and season
 With the inclusion of more historical data, the SARIMA model can be utilized effectively in future renewable energy applications. It can accurately predict energy requirements on a monthly basis, enabling the estimation of necessary battery and grid capacities to support the transition towards renewables.
 
 # 8. References
+
+[1] “Daily Electricity Price and Demand Data | Kaggle.” https://www.kaggle.com/datasets/aramacus/electricity-demand-in-victoria-australia (accessed Jun. 07, 2023).
+[2] Haydar Demirhan (2023) ‘Module 2: Analysis of Trends’[PowerPoint slides, MATH1318], RMIT University, Melbourne.
+[3] Haydar Demirhan (2023) ‘Module 8: Seasonal Models’[PowerPoint slides, MATH1318], RMIT University, Melbourne.
