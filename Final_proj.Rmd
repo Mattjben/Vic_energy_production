@@ -10,7 +10,7 @@ output:
 css: style.css
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -55,7 +55,7 @@ This data set contains the total daily energy demand across Victoria in MWh from
 
 
 
-```{r, include=FALSE}
+```{r, include=FALSE, warning=FALSE}
 library(readr)
 library(ggplot2)
 library(dplyr)
@@ -66,10 +66,11 @@ library(tsbox)
 library(lmtest)
 library(FitAR)
 library(tseries)
+library(knitr)
 library(forecast)
 ```
 
-```{r, include=FALSE}
+```{r, include=FALSE, warning=FALSE}
 sort.score <- function(x, score = c("bic", "aic")){
 if (score == "aic"){
 x[with(x, order(AIC)),]
@@ -91,20 +92,25 @@ Normalitytests <-  function(data,title) {
 }
 
 Plot_Model <- function(data,model_num,fignum,p,d,q,P,D,Q) {
+  
+  layout(matrix(c(1,1,2,3), nrow = 2, ncol = 2, byrow = TRUE))
 
+
+    
   m.ts = Arima(data,order=c(p,d,q),seasonal=list(order=c(P,D,Q), period=12))
   res.m = residuals(m.ts);  
-  par(mfrow=c(1,1))
-  plot(res.m,xlab='Time',ylab='Residuals',main=paste("Figure: ", fignum, "model" , model_num,"residuals"))
-  par(mfrow=c(1,2))
+  
+  plot(res.m,xlab='Time',ylab='Residuals',main=combine_words(c("Figure ", fignum, ": model " , model_num," residuals "),sep = "",
+  and = ""))
+ 
   acf(res.m,lag.max=48, main=paste("ACF plot"))
   pacf(res.m,lag.max=48, main=paste("PACF plot"))
-  par(mfrow=c(1,1))
+  
  return(m.ts)
 }
 
 
-residual.analysis <- function(model, fignum,std = TRUE,start = 2, class = c("ARIMA","GARCH","ARMA-GARCH", "fGARCH")[1]){
+residual.analysis <- function(model, fignum,std = TRUE,start = 2, class = c("ARIMA","GARCH","ARMA-GARCH", "fGARCH")[1],method="",o1="",o2=""){
   library(TSA)
   
   if (class == "ARIMA"){
@@ -122,13 +128,22 @@ residual.analysis <- function(model, fignum,std = TRUE,start = 2, class = c("ARI
   }else {
     stop("The argument 'class' must be either 'ARIMA' or 'GARCH' ")
   }
-  par(mfrow=c(2,3))
- 
+  par(mfrow=c(2,3), mar = c(1, 1,6, 2))
+  if (o1 != ""){
   plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
-  mtext(paste("Figure: ", fignum, "Residual Analysis"),                   # Add main title
+  mtext(combine_words(c("Figure ", fignum, ":  SARIMA",o1,o2," Residual Analysis (",method,")") ,sep = "",
+  and = ""),             
       side = 3,
-      line = 0,
+      line = -2,
+      outer = TRUE)}
+  else{plot(res.model,type='o',ylab='Standardised residuals', main="Time series plot of standardised residuals")
+  mtext(combine_words(c("Figure ", fignum, ": Residual Analysis") ,sep = "",
+  and = ""),             
+      side = 3,
+      line = -2,
       outer = TRUE)
+    
+  }
   abline(h=0)
   hist(res.model,main="Histogram of standardised residuals")
   qqnorm(res.model,main="QQ plot of standardised residuals")
@@ -145,7 +160,9 @@ residual.analysis <- function(model, fignum,std = TRUE,start = 2, class = c("ARI
 Parameter.estimation <- function(data,order1,order2,method,fignum){
     model = Arima(data,order=order1,seasonal=list(order=order2, period=12),method = method)
     
-    residual.analysis(model = model,fignum = fignum)
+    residual.analysis(model = model,fignum = fignum,method=method,o1=combine_words(c('(',combine_words(c(order1),sep = ",",
+  and = ""),')'),sep="",and=""),o2=combine_words(c('(',combine_words(c(order2),sep = ",",
+  and = ""),')'),sep="",and=""))
     print(coeftest(model))
     return(model)
 }
@@ -166,7 +183,7 @@ Stationary_tests <- function(data){
 
 To further investigate the time series data, the data set is first imported and converted to a time series object. This time series object is then plotted using the plot() function in order to visualize its main characteristics.
 
-```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8, warning=FALSE}
 
 Data <- read_csv("complete_dataset.csv")
 
@@ -181,19 +198,19 @@ plot(Data_xts,type="o",ylab="Total daily electricity demand (MWh)",xlab="Year",
 
 ```
 
-- **Trend**: A very slight downward trend.
+- **Trend**: A very slight downward trend. 
 
-- **Variance**: No obvious changing variance. 
+- **Variance**: No obvious changing variance.  
 
-- **Seasonality**: It can be seen all the peaks occurring around July each year with short spikes occurring every January a This is as expected as generally more electricity is used during winter with the exception of very hot days during January aswell that is likely to cause large uptake in cooling systems. 
+- **Seasonality**: It can be seen all the peaks occurring around July each year with short spikes occurring every January a This is as expected as generally more electricity is used during winter with the exception of very hot days during January aswell that is likely to cause large uptake in cooling systems.  
 
-- **Change Point**: No clear change point observed
+- **Change Point**: No clear change point observed 
 
 
 As you can see in the plot above the time series data has relatively high granularity due to the fact daily data points are used. Because of this, this data is likely to contain multiple seasonal components on the day , week and month level. As the main objective of this report is to identify and forecast trends in the electricity demand on a monthly basis, this time series data will be aggregated on monthly basis. 
 
 
-```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8, warning=FALSE}
 
 
 # remove last 6 data points as they belong to separate month and will skew the summations
@@ -208,19 +225,19 @@ plot(Data_xts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Y
      main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
 ```
 
-Time series characteristics observed from the above plot:   
+Time series characteristics observed from the above plot:    
 
-- **Trend**: A very slight downward trend.    
+- **Trend**: A very slight downward trend.     
 
-- **Variance**: No obvious changing variance. 
+- **Variance**: No obvious changing variance.  
 
 - **Seasonality**: Needs to be further investigated, however annual repeating patterns can be seen around every January and july each year which strongly suggests the existence of seasonality.   
 
-- **Change Point**: No clear change point observed
+- **Change Point**: No clear change point observed. 
 
 
 
-```{r , message=FALSE,fig.align="center",class.source="cobalt"}
+```{r , message=FALSE,fig.align="center",class.source="cobalt", warning=FALSE}
 # Summary Stats
 summary(Data_xts_agg)
 ```
@@ -228,25 +245,25 @@ summary(Data_xts_agg)
 As seen in the summary data above, the data has a mean of 3654578 and a median of 3631206 , which is relatively similar indicating that the distribution is roughly symmetric if not slightly right-skewed. The min and max have a difference of 1064321 which is relatively large, indicating that there is significant variability in the data. The IQR of the data set is 423614 which indicates a moderate spread of data points around the mean. As both q1 and q3 are similar distance away from the median it can be concluded the data is relatively symmetric , however the slightly greater difference between q3 and the median does further indicate a slight positive skew. 
 
 
-```{r}
+```{r, warning=FALSE,fig.width=11, fig.height=5}
 # ACF and PACF
 par(mfrow=c(1,2))
-acf(Data_xts_agg,lag.max=30, main="Figure 3: ACF plot of \ndaily Victorian electricity \nconsumption time series")
-pacf(Data_xts_agg,lag.max=30, main="Figure 4: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+acf(Data_xts_agg,lag.max=30, main="Figure 3: ACF plot of daily Victorian electricity \nconsumption time series")
+pacf(Data_xts_agg,lag.max=30, main="Figure 4: PACF plot of daily Victorian electricity \nconsumption time series")
 
 ```
 
 From the ACF plot above we can see a very clear wave-like pattern which indicates the presence of seasonality in our data.The Pacf exhibits a slowly decreasing pattern which suggests a gradual decay of autocorrelation , suggesting the presence of a long-term/weak auto-regressive trend in the data. From this one can roughly deduce that a SARIMA model is likely going to be the best model-type for this data. 
 
 
-```{r}
+```{r, warning=FALSE}
 # ADF test to test for stationarity
 Stationary_tests(Data_xts_agg)
 
 ```
 For the ADF test, a p-value less 0.05 indicates that under the 95% confidence interval the null hypothesis of non-stationarity can be rejected.The ADF test above shows a p-value of 0.088 which is greater than 0.05 , meaning the null hypothesis cannot be rejected and the time series is assumed to NOT be stationary. The Phillips-Perron also supported this with a p-value less than 0.05 , meaning under the general consesus non-stationarity can be assumed. 
 
-```{r}
+```{r, warning=FALSE}
 # Check the degree of normality 
 Normalitytests(Data_xts_agg,"Figure 5: QQ plot of Victorian electricity consumption time series")
 ```
@@ -255,13 +272,13 @@ In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plo
 ## 2.2 Impact of previous days
 
 Another useful initial analysis to conduct is to determine whether or not previous years share a strong correlation or not. 
-```{r}
+```{r, warning=FALSE}
 # plot lag 1 scatterplot
 plot(y=Data_xts_agg,x=zlag(Data_xts_agg),ylab="Total monthly electricity demand (MWh)", xlab='Previous months values', main = "Figure 6: Lag 1 Plot.") 
 ```
 
 
-```{r}
+```{r, warning=FALSE}
 y = Data_xts_agg    
 x = zlag(Data_xts_agg)   # Generate first lag of the series
 index = 2:length(x)  # Create an index to get rid of the first NA value in x
@@ -275,7 +292,7 @@ The scatter plot above shows that there is a weak positive correlation between t
 
 # 3. Identifying seasonality
 
-```{r}
+```{r, warning=FALSE}
 #Plot acf plot of time series data
 acf(Data_xts_agg, lag.max = 70,main="Figure 7: ACF plot of Victorian electricity consumption time series")
 
@@ -290,7 +307,7 @@ Because a wave pattern with clear significant lags was seen in the acf plot abov
 It can be seen that peaks occur at lags 1 , 12 , 24 etc. which suggest the seasonality of the series exhibits a frequency of approximately 12. This also is expected in terms of the context of the problem as energy usage is likely to go up every winter and start of summer. Because of this the frequency of 12 will be embdedded into the time series itself. 
 
 
-```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+```{r , message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8, warning=FALSE}
 
 # Convert to ts object so that we can add frequency:
 Data <- df                                  # Duplicate data
@@ -314,24 +331,24 @@ plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Ye
 
 
 
-# 3. Data transformations
+# 4. Data transformations
 
 Because the acf and pacf plots indicate the presence of trends in the data (downward trends) and because the days exhibited both non-stationarity and non-normality, it will be likely transformations will need to be performed to remove this trend. Because Log transformations are generally used for variance stabilisation, a more general transformation called Box-Cox was tested.
 
-```{r}
+```{r, warning=FALSE}
 # As the data is not normal a box cox transformation will be used to see if this improves normality
 BC = BoxCox.ar(Data_ts_agg, lambda = seq(-2, 6, by = 0.1))
 title(main = "Figure 9: Optimal BoxCox transformation")
 
 ```
 
-```{r}
+```{r, warning=FALSE}
 lambda <- BC$lambda[which(max(BC$loglike) == BC$loglike)]
 lambda
 ```
 The optimal value of lambda in this instance is 3.1
 
-```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8, warning=FALSE}
 # Apply box cox transformation to time series and see if normality has improved
 Data_ts_agg_BC = (Data_ts_agg^lambda-1)/lambda
 #Plot the Time Series:
@@ -342,13 +359,13 @@ plot(Data_ts_agg_BC,type="o",ylab="Total monthly electricity demand (MWh)",xlab=
 
 As can be seen in figure X above, the BoxCox transformation does not appear to have had much effect on the time series.
 
-```{r}
+```{r, warning=FALSE}
 Stationary_tests(Data_ts_agg_BC)
 ```
 
 It can be seen in both the ADF and pp test above, the BoxCox transformation slightly increased the stationary of the time series.
 
-```{r}
+```{r, warning=FALSE}
 # Check if normality has been improved
 Normalitytests(Data_ts_agg_BC,"Figure 11: QQ plot of BC Victorian electricity consumption time series")
 ```
@@ -357,7 +374,7 @@ Based on the results of the Shapiro-Wilk test, it is observed that the Box-Cox t
 
 Given that the model was not stationary, an initial first differencing will be employed. This differencing approach aims to remove any underlying trend present in the data and make it stationary, which is a crucial requirement for many time series models.
 
-```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8}
+```{r, message=FALSE,fig.align="center",class.source="cobalt",fig.width=20, fig.height=8, warning=FALSE}
 # applying first differencing
 diff.Data_ts_agg <- diff(Data_ts_agg)
 par(mfrow=c(1,1))
@@ -367,7 +384,7 @@ plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure 12: Time seri
 
 Upon initial inspection of the first differenced time series plot, it is observed that there are no apparent trends or changing variances. This suggests that the first differencing alone might be sufficient to make the time series stationary.
 
-```{r}
+```{r, warning=FALSE}
 # Use adf test on differenced series
 Stationary_tests(diff.Data_ts_agg)
 ```
@@ -377,14 +394,14 @@ While the Phillips-Perron (PP) test may have yielded a p-value less than 0.05, i
 
 
 
-```{r}
+```{r, warning=FALSE}
 # Test for normality of difference plot 
 Normalitytests(diff.Data_ts_agg,"Figure 13: QQ plot of difference time series")
 ```
 The Shapiro-Wilk test resulted in a p-value greater than 0.05, indicating that, under the 95% confidence level, we can assume normality of the data. This is beneficial when fitting time series models because many models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average), assume normality of the residuals.
 
 
-```{r}
+```{r, warning=FALSE}
 # ACF and PACF to find period of differenced series
 par(mfrow=c(1,2))
 acf(diff.Data_ts_agg, lag.max = 70, main="Figure 14: ACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
@@ -398,11 +415,11 @@ Therefore, it is crucial to incorporate appropriate seasonal and trend models, s
 
 
 
-# 4. Simple deterministic model (Linear + Seaonal model)
+# 5. Simple deterministic model (Linear + Seaonal model)
 
 Before delving into more complex SARIMA models, we will start by fitting and analyzing a simpler deterministic model. The chosen model for this initial analysis is a hybrid additive model, which combines a seasonal model to capture yearly seasonality and a linear model to capture the decreasing trend.
 
-```{r}
+```{r, warning=FALSE}
 t <- time(Data_ts_agg)
 month.=season(Data_ts_agg) # period added to improve table display and this line sets up indicators
 Hybridmodel=lm(Data_ts_agg~month.+t-1) # -1 removes the intercept term
@@ -411,7 +428,7 @@ summary(Hybridmodel)
 This hybrid model archived an adjusted R squared score of 0.9992 , this overly high score is very worrying and is a good indication of over fitting. Additionally, all the coefficients  archive p-values higher than 0.05, meaning they are found to be statistically  significant. 
 
 
-```{r}
+```{r, warning=FALSE}
 
 plot(Data_ts_agg, main = "Figure 16: Hybrid model",ylab="Demand (MWh)",xlab='Year'
      ,type='o')
@@ -422,22 +439,22 @@ legend("topright", legend = c("Time series plot", "Fitted hybrid model"),
 
 ```
 The plot of the trend model shows that the hybrid model fits the time series to a moderate extent. it has some trouble fitting the seasonal trends in the summer months which is likely due to the stochastic nature of these trends. 
-## 4.1 Residual analysis
+## 5.1 Residual analysis
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # Get standardized residuals 
 Hybridmodel.res=rstudent(Hybridmodel)
 
 
 residual.analysis(Hybridmodel,'17')
 ```
-- **Histogram**: The histogram is relatively normal. 
-- **QQ Plot**: The qqplot observed in this model at the tails of the data still significant deviates from the center line
-- **ACF**: the lack of a wave-like pattern and significant lags shows that the models was able to significantly capture the seasonality and correlation present in the data 
-- **Shapiro-wilk test**: The shapiro-wilk normality test produced a p-value of 0.154. This value is greater than 0.05, meaning under a 95% confidence level and the null hypothesis is NOT rejected, meaning no  significant departure from normality was found. 
+- **Histogram**: The histogram is relatively normal.  
+- **QQ Plot**: The qqplot observed in this model at the tails of the data still significant deviates from the center line.   
+- **ACF**: the lack of a wave-like pattern and significant lags shows that the models was able to significantly capture the seasonality and correlation present in the data.     
+- **Shapiro-wilk test**: The shapiro-wilk normality test produced a p-value of 0.154. This value is greater than 0.05, meaning under a 95% confidence level and the null hypothesis is NOT rejected, meaning no  significant departure from normality was found.   
 
-## 4.2 forecast
-```{r}
+## 5.2 Forecast
+```{r, warning=FALSE}
 
 
 h <- 0.8333333333333334 # 10 months ahead forecasts
@@ -455,7 +472,7 @@ pred <- predict.lm(Hybridmodel,daysahead,interval='prediction') # Computing the 
 
 ```
 
-```{r}
+```{r, warning=FALSE}
 
 # plot forcasted values
 par(mfrow=c(1,1))
@@ -475,18 +492,18 @@ legend("topright", legend =  c("Data","5% forecast limits", "Forecasts","Fitted 
 
 From the above plot we can see that the predictions do seem to follow the same very slow downward trend and the rough seasonal variations in the data. The red line represents the fitted values for the next 10months , while the blue lines indicate the upper and lower confidence intervals for the fitted values. For the simplicity of the model this is an adequate forecast , however its precision is effected by the stochastic nature of the seasonal trends as the difference in peaks between years does not seem to follow a specific trend. 
 
-# 5. SARIMA model
+# 6. SARIMA model
 
 The more complex model that will be used to forecast this dataset will be a SARIMA model. This is because there is clear seasonality in the monthly aggregated time series with a period of 12 months. There is also constant variance with no clusters of high variance and therefore a GARCH model is not suitable for this time series. This model is therefore more likely to pick up on the slight year deviations in values.To begin finding possible PDQ and pdq parameters for the SARIMA model, first the seasonal component must be modeled by finding the P and Q values. The residuals analysis approach was used to find possible seasonal P and Q values.
 
-## 5.1 Residual Approach
+## 6.1 Residual Approach
 
 
 To deal with the season trend effect, we will fit an initial plain model (model 1) with the first seasonal difference to see if the seasonal trend is affected and to what extent. 
 
 
 
-```{r}
+```{r,fig.width = 7, fig.height = 7, warning=FALSE}
 # Model 1 with first seasonal differencing
 m1.ts<-Plot_Model(Data_ts_agg,1,"19",0,0,0,0,1,0)
 ```
@@ -494,33 +511,33 @@ It can be seen in the Time series plot of the residuals plotted above, there is 
 
 
 
-```{r}
+```{r,fig.width = 7, fig.height = 7, warning=FALSE}
 # Model 2 SAMRA(0,1) with first seasonal differencing
-m2.ts<-Plot_Model(Data_ts_agg,2,"21",0,0,0,0,1,1)
+m2.ts<-Plot_Model(Data_ts_agg,2,"20",0,0,0,0,1,1)
 ```
 
 The residual plot of model 2 can be seen in figure X above, similarly to model one it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the first lag in the ACF shown in figure X above therefore for Model 3, Q will be updated to 2 and checked if there is still a significant lag.
 
 
-```{r}
+```{r,fig.width = 7, fig.height = 7, warning=FALSE}
 # Model 3 SAMRA(0,2) with first seasonal differencing
-m3.ts<-Plot_Model(Data_ts_agg,3,"",0,0,0,0,1,2)
+m3.ts<-Plot_Model(Data_ts_agg,3,"21",0,0,0,0,1,2)
 ```
 
 The residual plot of model 2 can be seen in figure X above, similarly to model two it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the second lag in the ACF shown in figure X above as well as the PACF shown in figure X above. Therefore for Model 3, Q will be updated to 3 for model 4 and checked if there is still a significant lag.
 
 
 
-```{r}
+```{r,fig.width = 7, fig.height = 7, warning=FALSE}
 # Model 4 SAMRA(0,3) with first seasonal differencing
-m4.ts<-Plot_Model(Data_ts_agg,4,"X",0,0,0,0,1,3)
+m4.ts<-Plot_Model(Data_ts_agg,4,"22",0,0,0,0,1,3)
 
 ```
 
 The residual plot of model 4 can be seen in figure X above, similarly to model 3 it can be seen there is no obvious seasonal component in the residuals.There is also no significant lags in the PACF or ACF plots shown above and therefore P = 0 and Q = 3 can be considered to model the seasonal component of the monthly aggregated time series.
 
 
-```{r}
+```{r, warning=FALSE}
 Stationary_tests(residuals(m4.ts))
 
 ```
@@ -531,9 +548,9 @@ The KPSS test however does not show stationarity as the p-value of 0.1 is greate
 
 
 
-```{r}
+```{r,fig.width = 7, fig.height = 7, warning=FALSE}
 # Base model for BIC and eacf
-base.ts<-Plot_Model(Data_ts_agg,1,"X",0,1,0,0,1,3)
+base.ts<-Plot_Model(Data_ts_agg,1,"23",0,1,0,0,1,3)
 
 adf.test(residuals(base.ts))
 
@@ -546,9 +563,9 @@ To find initial p and q values, the ACF and PACF plots will be analysed. A first
 Therefore, possible p and q values for the ARIMA section can be 2 and 1 respectively.
 
 so we will ty to use a ARIMA(2,1) model.
-```{r}
+```{r,fig.width = 7, fig.height = 7, warning=FALSE}
 # Model 5  ARIMA(2,1)+ SAMRA(0,3) with first seasonal differencing
-m5.ts<-Plot_Model(Data_ts_agg,5,"X",2,1,1,0,1,3)
+m5.ts<-Plot_Model(Data_ts_agg,5,"24",2,1,1,0,1,3)
 
 ```
 
@@ -556,61 +573,62 @@ As can be seen in the ACF and PACF in figure X and figure X above, p = 2 and q =
 
 
 
-```{r}
+```{r, warning=FALSE}
 # GET EACF
 res.base = residuals(base.ts)
 eacf(res.base)
 
 ```
 
-The tentative models found using EACF table above , with e point (0,1) being the top leftmost 'o' are specified as:
-- SARIMA(0,1,2)x(0,1,3)_12
-- SARIMA(0,1,1)x(0,1,3)_12
-- SARIMA(1,1,1)x(0,1,3)_12
-- SARIMA(1,1,2)x(0,1,3)_12
-- SARIMA(2,1,1)x(0,1,3)_12
+The tentative models found using EACF table above , with e point (0,1) being the top leftmost 'o' are specified as: 
+- SARIMA(0,1,2)x(0,1,3)_12   
+- SARIMA(0,1,1)x(0,1,3)_12   
+- SARIMA(1,1,1)x(0,1,3)_12 
+- SARIMA(1,1,2)x(0,1,3)_12  
+- SARIMA(2,1,1)x(0,1,3)_12  
 
-```{r}
+```{r, warning=FALSE}
 # BIC
 par(mfrow=c(1,1))
 bic_table = armasubsets(y=res.base,nar=5,nma=5,y.name='p',ar.method='ols')
 plot(bic_table)
 
 ```
-The tentative models found using the BIC table are specified as:
-- SARIMA(0,1,5)x(0,1,3)_12
-- SARIMA(0,1,2)x(0,1,3)_12
-- SARIMA(0,1,3)x(0,1,3)_12
+The tentative models found using the BIC table are specified as:  
 
-overall the TOTAL SET of possible models:
-- SARIMA(0,1,1)x(0,1,3)_12
-- SARIMA(1,1,1)x(0,1,3)_12
-- SARIMA(1,1,2)x(0,1,3)_12
-- SARIMA(2,1,1)x(0,1,3)_12
-- SARIMA(0,1,5)x(0,1,3)_12
-- SARIMA(0,1,2)x(0,1,3)_12
-- SARIMA(0,1,3)x(0,1,3)_12
+- SARIMA(0,1,5)x(0,1,3)_12  
+- SARIMA(0,1,2)x(0,1,3)_12  
+- SARIMA(0,1,3)x(0,1,3)_12  
 
-## 5.2 Model Fitting and Diagnostic Checking
+overall the TOTAL SET of possible models:   
+- SARIMA(0,1,1)x(0,1,3)_12   
+- SARIMA(1,1,1)x(0,1,3)_12   
+- SARIMA(1,1,2)x(0,1,3)_12   
+- SARIMA(2,1,1)x(0,1,3)_12   
+- SARIMA(0,1,5)x(0,1,3)_12   
+- SARIMA(0,1,2)x(0,1,3)_12   
+- SARIMA(0,1,3)x(0,1,3)_12  
 
-### 5.2.1 Parameter significance
+## 6.2 Model Fitting and Diagnostic Checking
+
+### 6.2.1 Parameter significance
 
 
 #### SARIMA(0, 1, 1)(0, 1, 3)_12
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="ML",'X')
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="ML",'25')
 
 ```
 
 It can be seen for the above model the MA(1) value is significant, however not the seasonal P and Q values. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.01 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. Because the residuals are not normal, CSS is likely a better method over ML.
 
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # CSS METHOD 
-m4_011_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="CSS",'X')
+m4_011_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,3),method="CSS",'26')
 
 ```
 
@@ -621,10 +639,10 @@ IT is evident that the seasonal component is not being captured as none of the S
 
 ##### 1 - reducing Q value by 1
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 
 # ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,2),method="ML",'X')
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,2),method="ML",'27')
 
 ```
 
@@ -632,9 +650,9 @@ It can be seen for the above model the MA(1) value is significant, however not t
 
 #### 1 - reducing Q value by 2
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,1),method="ML",'X')
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(0,1,1),method="ML",'28')
 
 ```
 
@@ -642,10 +660,10 @@ It can be seen for the above model the MA(1) value is significant, however not t
 
 #### 1 - reducing Q value by 3 and increasing P
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML",'X')
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(1,1,0),method="ML",'29')
 
 ```
 
@@ -653,35 +671,36 @@ It can be seen for the above model the MA(1) value is significant and so is the 
 
 
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # SARIMA(0,1,1)x(0,1,3)_12
 # ML METHOD 
-m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(2,1,0),method="ML",'X')
+m4_011_ML <- Parameter.estimation(Data_ts_agg,c(0,1,1),c(2,1,0),method="ML",'30')
 
 ```
 
 It can be seen for the above model the MA(1) value is significant and so is the seasonal AR(1) and AR(2) values. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.015 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. Due to the higher number of significant seasonal perameters in this model compared to previous, it is more likely to capture the seasonal trend to a greater degree. This is thew most optimal model as increasing any further causes and reduction in the number of significant parameters. The updated seasonal parameters will be used now to check the ARIMA p and q values for previously identified possible models.
 
-Final seasonal parameters:
-- P = 2
-- D = 1
-- Q = 0
+Final seasonal parameters: 
 
-#### SARIMA(1, 1, 1)(2, 1, 0)_12
+- P = 2 
+- D = 1  
+- Q = 0   
 
-```{r}
+#### SARIMA(1, 1, 1)(2, 1, 0)_12 
+
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # SARIMA(1,1,1)x(2,1,0)_12
 # ML METHOD 
-base_111_ML <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML",'X')
+base_111_ML <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML",'31')
 
 ```
 
 It can be seen for the above model none of the AR or MA values for the ARIMA component are significant. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.02 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. The CSS method will be used because the residuals were not normally distributed.
 
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # CSS METHOD 
-base_111_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="CSS",'X')
+base_111_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="CSS",'32')
 
 ```
 
@@ -689,10 +708,10 @@ It can be seen for the above model using the CSS method, All of the AR and MA va
 
 #### SARIMA(1, 1, 2)(2, 1, 0)_12
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 
 # ML METHOD 
-base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="ML",'X')
+base_112_ML <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="ML",'33')
 
 ```
 
@@ -700,9 +719,9 @@ It can be seen for the above model none of the AR or MA values for the ARIMA com
 
 
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # CSS METHOD 
-base_112_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="CSS",'X')
+base_112_CSS <- Parameter.estimation(Data_ts_agg,c(1,1,2),c(2,1,0),method="CSS",'34')
 
 ```
 
@@ -710,18 +729,18 @@ It can be seen for the above model using the CSS method, All of the AR and MA va
 
 #### SARIMA(2, 1, 1)(2, 1, 0)_12
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # ML METHOD 
-base_211_ML <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="ML",'X')
+base_211_ML <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="ML",'35')
 
 ```
 
 It can be seen for the above model none of the AR values and the MA(1) value for the ARIMA component are significant. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.012 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. The CSS method will be used because the residuals were not normally distributed.
 
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # CSS METHOD 
-base_211_CSS <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="CSS",'X')
+base_211_CSS <- Parameter.estimation(Data_ts_agg,c(2,1,1),c(2,1,0),method="CSS",'36')
 
 ```
 
@@ -729,58 +748,58 @@ It can be seen for the above model using the CSS method, All of the AR and MA va
 
 #### SARIMA(0, 1, 5)(2, 1, 0)_12
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 
-base_015_ML <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="ML",'X')
+base_015_ML <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="ML",'37')
 ```
 
 
 It can be seen for the above model the MA(1) value for the ARIMA component are significant and none of the others. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.015 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. The CSS method will be used because the residuals were not normally distributed.
 
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 
-base_015_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="CSS",'X')
+base_015_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,5),c(2,1,0),method="CSS",'38')
 ```
 
 It can be seen for the above model using the CSS method, only the MA(1) and MA(3) parameters for the ARIMA component are significant. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of ~0 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. 
 
 #### SARIMA(0, 1, 2)(2, 1, 0)_12
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 
-base_012_ML <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML",'X')
+base_012_ML <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML",'39')
 ```
 
 It can be seen for the above model the MA(1) value for the ARIMA component are significant and none of the others. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.02 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. The CSS method will be used because the residuals were not normally distributed.
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 
-base_012_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="CSS",'X')
+base_012_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="CSS",'40')
 ```
 
 It can be seen for the above model using the CSS method, only the MA(1) parameter for the ARIMA component are significant. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of ~0 which is less than 0.05. There is also a significant lag in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. This is likely a less promising model. 
 
 #### SARIMA(0, 1, 3)(2, 1, 0)_12
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 
-base_013_ML <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(2,1,0),method="ML",'X')
+base_013_ML <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(2,1,0),method="ML",'41')
 ```
 
 It can be seen for the above model the MA(1) value for the ARIMA component are significant and none of the others. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.01 which is less than 0.05. However there is no significant lags in the ACF plot and all p values are above the confidence interval in the Ljung-Box test. The CSS method will be used because the residuals were not normally distributed.
 
 
 
-```{r}
-base_013_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,3),method="CSS",'X')
+```{r,fig.width=8, fig.height=5, warning=FALSE}
+base_013_CSS <- Parameter.estimation(Data_ts_agg,c(0,1,3),c(0,1,3),method="CSS",'42')
 ```
 
 It can be seen for the above model using the CSS method, only the MA(1) parameter for the ARIMA component are significant. It can be seen in the residual analysis, there is no obvious trend in the residuals plot. However using the histogram of residuals and the QQ plot, it does not seem the residuals are normally distributed. This can be further seen by the Shapiro Wilks t-test which returned a p-value of 0.02 which is less than 0.05. There is also a significant lag in the ACF plot and all p values are above the confidence interval in the Ljung-Box test.
 
 
 
-### 5.2.2 BIC/AIC values
+### 6.2.2 BIC/AIC values 
 
 
 An alternative method to evaluate and compare the suitability of various SIMRA models is by utilizing AIC (Akaike Information Criterion) and BIC (Bayesian Information Criterion) scores. In both instances, lower values of AIC and BIC indicate better-fitting models.
@@ -788,7 +807,7 @@ An alternative method to evaluate and compare the suitability of various SIMRA m
 AIC and BIC evaluate models based on their goodness of fit and complexity. Both criteria consider the likelihood of the data fitting the model and penalize models for their complexity, effectively avoiding overfitting. By striking a balance between fit and complexity, AIC and BIC provide a comprehensive assessment of model quality.
 
 
-```{r}
+```{r, warning=FALSE}
 sc.AIC = AIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_ML,base_013_ML)
 
 sc.BIC = BIC(m4_011_ML,base_111_ML,base_112_ML,base_211_ML,base_015_ML,base_012_ML ,base_013_ML)
@@ -804,14 +823,14 @@ sort.score(sc.BIC, score = "bic")
 Based on the AIC and BIC tables mentioned, the 'm4_011_ML' model attained the lowest AIC and BIC values, indicating that the SARIMA(0,1,1)x(0,1,3)_12 model is the best fitting model according to these scores. On the other hand, the SARIMA(0,1,5)x(0,1,3)_12 model exhibited the highest values, suggesting a poorer fit.
 
 
-### 5.2.3 Accuracy Scores
+### 6.2.3 Accuracy Scores
 
 In addition to AIC and BIC, another approach to comparing the fit or accuracy of models is by utilizing various accuracy scores. These scores include metrics such as ME (Mean Error), RMSE (Root Mean Squared Error), MAE (Mean Absolute Error), MPE (Mean Percentage Error), MAPE (Mean Absolute Percentage Error), MASE (Mean Absolute Scaled Error), and ACF1 (Autocorrelation Function at lag 1).
 
 Lower values for these accuracy metrics indicate a better fit in terms of the accuracy of the model. By assessing these metrics, one can gauge how well the model predicts or approximates the observed data. The selection of the model with the lowest values for these accuracy scores suggests its superior performance in accurately capturing the underlying patterns and trends in the data.
 
 
-```{r}
+```{r, warning=FALSE}
 
 
 Sm4_011_ML <- accuracy(m4_011_ML)[1:7]
@@ -839,7 +858,7 @@ Based on the table provided, it is observed that the SARIMA(1,1,1)x(2,1,0)_12 mo
 In contrast, the SARIMA(0,1,1)x(2,1,0)_12 model did not achieve the best accuracy values and was ranked fourth or fifth in most categories.
 
 
-## 5.3 Summary
+## 6.3 Summary
 
 After conducting parameter significance and residuals analysis, it was observed that the SARIMA(0,1,1)x(2,1,0)_12 model had the most significant parameters, indicating its suitability as an optimal fit. Additionally, the model achieved the lowest AIC and BIC scores, further supporting its strong performance.
 
@@ -847,21 +866,21 @@ Although the SARIMA(0,1,1)x(2,1,0)_12 model did not achieve the best accuracy sc
 
 
 
-## 5.4 Model Diagnostics
+## 6.4 Model Diagnostics
 
 To assess whether the SARIMA(0,1,1)x(2,1,0)_12 model is not underfit, we can employ model overfitting as an additional diagnostic tool. this approach involves increasing the values of both p (autoregressive order) and q (moving average order) in the SARIMA model. By doing so, we can examine if the number of significant parameters and the quality of fit improve, indicating potential underfitting in the initial SARIMA(0,1,1)x(2,1,0)_12 model.
 
 
-```{r}
+```{r,fig.width=8, fig.height=5, warning=FALSE}
 # Increasing the value of P
-m4_111 <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML",'X')
+m4_111 <- Parameter.estimation(Data_ts_agg,c(1,1,1),c(2,1,0),method="ML",'43')
 
 ```
 By increasing the value of p the AR(1) is not significant , meaning no imporvement of fit has occured by overfitting the model in this direction.
 
 
-```{r}
-m4_012 <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML",'X')
+```{r,fig.width=8, fig.height=5, warning=FALSE}
+m4_012 <- Parameter.estimation(Data_ts_agg,c(0,1,2),c(2,1,0),method="ML",'44')
 
 ```
 By increasing the value of p the MA(1) is not significant , meaning no improvement of fit has occurred by overfitting the model in this direction.
@@ -873,16 +892,17 @@ Upon increasing both the p and q values and evaluating the resulting models, no 
 Since increasing the p and q values did not lead to an improved fit, it can be concluded that the SARIMA(0,1,1)x(2,1,0)_12 model is already well-suited for the dataset at hand. This confirmation allows for greater confidence in proceeding with forecasting tasks using the established model.
 
 
-## 5.5 Forecasting
+## 6.5 Forecasting
 
 
-```{r}
+```{r, warning=FALSE}
 m5_1012.landingA = Arima(Data_ts_agg,order=c(0,1,1),seasonal=list(order=c(2,1,0), period=12), 
                           method = "ML")
 # Notice that I use lambda = 0 and send NMFS_Landings.ts instead of log(NMFS_Landings.ts) to get Arima() function to do the transformation.
 # This way, I will get the forecasts in the original scale.
 preds1 = forecast(m5_1012.landingA,  h = 48)
-preds1
+
+
 plot(preds1)
 
 
@@ -893,7 +913,7 @@ From the forecast provided, it is evident that the SARIMA model SARIMA(0,1,1)x(2
 However, it is important to note that as the forecasting horizon extends further into the future, the confidence interval for the predictions widens significantly. This widening of the confidence interval is expected, primarily due to insufficient data caused by data loss during monthly aggregation. With less historical data available for modeling and forecasting, there is increased uncertainty and variability in the predictions.
 
 
-# 6. Conclusion
+# 7. Conclusion
 
 
 After conducting various model specification and parameter estimation techniques to analyze the Victoria energy demand time series, the SARIMA(0,1,1)x(2,1,0) model emerged as the most fitting model based on several supporting factors. The significance of its parameters and the favorable AIC/BIC scores obtained provide evidence for its goodness of fit.
@@ -902,4 +922,4 @@ On the other hand, a simpler deterministic model that combined linear and season
 
 With the inclusion of more historical data, the SARIMA model can be utilized effectively in future renewable energy applications. It can accurately predict energy requirements on a monthly basis, enabling the estimation of necessary battery and grid capacities to support the transition towards renewables.
 
-# 7. References
+# 8. References
