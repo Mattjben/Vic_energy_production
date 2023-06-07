@@ -95,10 +95,10 @@ Plot_Model <- function(data,model_num,fignum,p,d,q,P,D,Q) {
   m.ts = Arima(data,order=c(p,d,q),seasonal=list(order=c(P,D,Q), period=12))
   res.m = residuals(m.ts);  
   par(mfrow=c(1,1))
-  plot(res.m,xlab='Time',ylab='Residuals',main=paste("Figure: ", fignum, "Time series plot of model" , model_num,"residuals"))
+  plot(res.m,xlab='Time',ylab='Residuals',main=paste("Figure: ", fignum, "model" , model_num,"residuals"))
   par(mfrow=c(1,2))
-  acf(res.m,lag.max=48, main=paste("Figure: ", fignum, "ACF plot of model" , model_num,"residuals"))
-  pacf(res.m,lag.max=48, main=paste("Figure: ", fignum, "PACF plot of model" , model_num,"residuals"))
+  acf(res.m,lag.max=48, main=paste("ACF plot"))
+  pacf(res.m,lag.max=48, main=paste("PACF plot"))
   par(mfrow=c(1,1))
  return(m.ts)
 }
@@ -231,8 +231,8 @@ As seen in the summary data above, the data has a mean of 3654578 and a median o
 ```{r}
 # ACF and PACF
 par(mfrow=c(1,2))
-acf(Data_xts_agg,lag.max=30, main="Figure X: ACF plot of \ndaily Victorian electricity \nconsumption time series")
-pacf(Data_xts_agg,lag.max=30, main="Figure X: PACF plot of \ndaily Victorian electricity \nconsumption time series")
+acf(Data_xts_agg,lag.max=30, main="Figure 3: ACF plot of \ndaily Victorian electricity \nconsumption time series")
+pacf(Data_xts_agg,lag.max=30, main="Figure 4: PACF plot of \ndaily Victorian electricity \nconsumption time series")
 
 ```
 
@@ -248,7 +248,7 @@ For the ADF test, a p-value less 0.05 indicates that under the 95% confidence in
 
 ```{r}
 # Check the degree of normality 
-Normalitytests(Data_xts_agg,"Figure X: QQ plot of Victorian electricity consumption time series")
+Normalitytests(Data_xts_agg,"Figure 5: QQ plot of Victorian electricity consumption time series")
 ```
 In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plot was used. The shapiro-wilk test achieved a p-value of 0.06 and as this is greater than 0.05 we cannot reject the null hypothesis of normality. The Q-Q plot does show that the data follows the centre-line for the majority of points , however there still is deviation at the ends of the data meaning this data likely skirts on the edge of normality. 
 
@@ -257,7 +257,7 @@ In order to test for normality in the data, Both a shaprio-wilk test and Q-Q plo
 Another useful initial analysis to conduct is to determine whether or not previous years share a strong correlation or not. 
 ```{r}
 # plot lag 1 scatterplot
-plot(y=Data_xts_agg,x=zlag(Data_xts_agg),ylab="Total monthly electricity demand (MWh)", xlab='Previous months values', main = "Figure 3: Lag 1 Plot.") 
+plot(y=Data_xts_agg,x=zlag(Data_xts_agg),ylab="Total monthly electricity demand (MWh)", xlab='Previous months values', main = "Figure 6: Lag 1 Plot.") 
 ```
 
 
@@ -277,7 +277,7 @@ The scatter plot above shows that there is a weak positive correlation between t
 
 ```{r}
 #Plot acf plot of time series data
-acf(Data_xts_agg, lag.max = 70,main="Figure : ACF plot of Victorian electricity consumption time series")
+acf(Data_xts_agg, lag.max = 70,main="Figure 7: ACF plot of Victorian electricity consumption time series")
 
 ```
 
@@ -307,7 +307,7 @@ Data_ts_agg = as.vector(t(Data_ts_agg))
 
 Data_ts_agg <- ts(Data_ts_agg,frequency=12,start =c(2015,1),end =c(2020,9) )
 plot(Data_ts_agg,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
-     main="Figure 2:Time Series of Victoria energy demand (aggregated monthly)")
+     main="Figure 8:Time Series of Victoria energy demand (aggregated monthly)")
 
 
 ```
@@ -321,7 +321,7 @@ Because the acf and pacf plots indicate the presence of trends in the data (down
 ```{r}
 # As the data is not normal a box cox transformation will be used to see if this improves normality
 BC = BoxCox.ar(Data_ts_agg, lambda = seq(-2, 6, by = 0.1))
-title(main = "Figure X: Optimal BoxCox transformation")
+title(main = "Figure 9: Optimal BoxCox transformation")
 
 ```
 
@@ -336,7 +336,7 @@ The optimal value of lambda in this instance is 3.1
 Data_ts_agg_BC = (Data_ts_agg^lambda-1)/lambda
 #Plot the Time Series:
 plot(Data_ts_agg_BC,type="o",ylab="Total monthly electricity demand (MWh)",xlab="Year",
-     main="Figure X:Time Series of Victoria energy demand (aggregated monthly)")
+     main="Figure 10:Time Series of Victoria energy demand (aggregated monthly)")
 
 ```
 
@@ -350,7 +350,7 @@ It can be seen in both the ADF and pp test above, the BoxCox transformation slig
 
 ```{r}
 # Check if normality has been improved
-Normalitytests(Data_ts_agg_BC,"Figure X: QQ plot of BC Victorian electricity consumption time series")
+Normalitytests(Data_ts_agg_BC,"Figure 11: QQ plot of BC Victorian electricity consumption time series")
 ```
 
 Based on the results of the Shapiro-Wilk test, it is observed that the Box-Cox transformation has made the time series less normal, as indicated by a p-value of 0.02. Consequently, since the transformation has had minimal impact on achieving stationarity and improving normality, it will not be utilized for the model.
@@ -361,7 +361,7 @@ Given that the model was not stationary, an initial first differencing will be e
 # applying first differencing
 diff.Data_ts_agg <- diff(Data_ts_agg)
 par(mfrow=c(1,1))
-plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure X: Time series plot of differenced
+plot(diff.Data_ts_agg,type='o',ylab = "Demand (MWh)", main='Figure 12: Time series plot of differenced
      Electricity demand.')
 ```
 
@@ -379,7 +379,7 @@ While the Phillips-Perron (PP) test may have yielded a p-value less than 0.05, i
 
 ```{r}
 # Test for normality of difference plot 
-Normalitytests(diff.Data_ts_agg,"Figure X: QQ plot of difference time series")
+Normalitytests(diff.Data_ts_agg,"Figure 13: QQ plot of difference time series")
 ```
 The Shapiro-Wilk test resulted in a p-value greater than 0.05, indicating that, under the 95% confidence level, we can assume normality of the data. This is beneficial when fitting time series models because many models, such as SARIMA (Seasonal Autoregressive Integrated Moving Average), assume normality of the residuals.
 
@@ -387,8 +387,8 @@ The Shapiro-Wilk test resulted in a p-value greater than 0.05, indicating that, 
 ```{r}
 # ACF and PACF to find period of differenced series
 par(mfrow=c(1,2))
-acf(diff.Data_ts_agg, lag.max = 70, main="Figure X: ACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
-pacf(diff.Data_ts_agg, lag.max = 70,main="Figure X: PACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+acf(diff.Data_ts_agg, lag.max = 70, main="Figure 14: ACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
+pacf(diff.Data_ts_agg, lag.max = 70,main="Figure 15: PACF plot of \ndifferenced daily Victorian electricity \nconsumption time series")
 
 ```
 from the acf and pacf plots above you can see that significant lags are still occurring at with slightly reduced wave-like pattern. The significant lags in the ACF plot indicate that past values of the time series are correlated with the current value, further indicating the presence of a seasonal pattern. Considering both the ACF and PACF, it becomes evident that the data still exhibits seasonality and trend components. These components need to be properly accounted for in subsequent modeling steps to ensure accurate forecasting and capturing the underlying patterns.
@@ -413,7 +413,7 @@ This hybrid model archived an adjusted R squared score of 0.9992 , this overly h
 
 ```{r}
 
-plot(Data_ts_agg, main = "Figure X: Hybrid model",ylab="Demand (MWh)",xlab='Year'
+plot(Data_ts_agg, main = "Figure 16: Hybrid model",ylab="Demand (MWh)",xlab='Year'
      ,type='o')
 points(t,predict.lm(Hybridmodel),type='l',col='red') # superimpose the fit of model reg0 on the plot of the data
 # Add legend
@@ -429,7 +429,7 @@ The plot of the trend model shows that the hybrid model fits the time series to 
 Hybridmodel.res=rstudent(Hybridmodel)
 
 
-residual.analysis(Hybridmodel,'X')
+residual.analysis(Hybridmodel,'17')
 ```
 - **Histogram**: The histogram is relatively normal. 
 - **QQ Plot**: The qqplot observed in this model at the tails of the data still significant deviates from the center line
@@ -459,7 +459,7 @@ pred <- predict.lm(Hybridmodel,daysahead,interval='prediction') # Computing the 
 
 # plot forcasted values
 par(mfrow=c(1,1))
-plot(Data_ts_agg, main = "Figure X: 10 month forcast",ylab="Demand (MWh)",xlab='Year'
+plot(Data_ts_agg, main = "Figure 18: 10 month forcast",ylab="Demand (MWh)",xlab='Year'
      ,type='o',ylim = c(min(c(fitted(Hybridmodel)-800000, as.vector(Data_ts_agg))),
               max(c(fitted(Hybridmodel)+800000, as.vector(Data_ts_agg)))),xlim=c(2015,2021.500))
 
@@ -488,7 +488,7 @@ To deal with the season trend effect, we will fit an initial plain model (model 
 
 ```{r}
 # Model 1 with first seasonal differencing
-m1.ts<-Plot_Model(Data_ts_agg,1,"X",0,0,0,0,1,0)
+m1.ts<-Plot_Model(Data_ts_agg,1,"19",0,0,0,0,1,0)
 ```
 It can be seen in the Time series plot of the residuals plotted above, there is no obvious seasonal component and therefore this model can likelely account fore the seasonality in the time series. It can be seen in the ACF plot in figure X above that there is a significant lag on lag 1. There is no significant lags on shown on the PACF plot shown in figure x above. Therefore the model will be updated with a seasonal MA order of 1.
 
@@ -496,7 +496,7 @@ It can be seen in the Time series plot of the residuals plotted above, there is 
 
 ```{r}
 # Model 2 SAMRA(0,1) with first seasonal differencing
-m2.ts<-Plot_Model(Data_ts_agg,2,"X",0,0,0,0,1,1)
+m2.ts<-Plot_Model(Data_ts_agg,2,"21",0,0,0,0,1,1)
 ```
 
 The residual plot of model 2 can be seen in figure X above, similarly to model one it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the first lag in the ACF shown in figure X above therefore for Model 3, Q will be updated to 2 and checked if there is still a significant lag.
@@ -504,7 +504,7 @@ The residual plot of model 2 can be seen in figure X above, similarly to model o
 
 ```{r}
 # Model 3 SAMRA(0,2) with first seasonal differencing
-m3.ts<-Plot_Model(Data_ts_agg,3,"X",0,0,0,0,1,2)
+m3.ts<-Plot_Model(Data_ts_agg,3,"",0,0,0,0,1,2)
 ```
 
 The residual plot of model 2 can be seen in figure X above, similarly to model two it can be seen there is no obvious seasonal component in the residuals.There is however still a significant lag on the second lag in the ACF shown in figure X above as well as the PACF shown in figure X above. Therefore for Model 3, Q will be updated to 3 for model 4 and checked if there is still a significant lag.
