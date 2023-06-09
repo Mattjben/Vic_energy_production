@@ -1,0 +1,43 @@
+/* Whole document: */
+body{
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 12pt;
+}
+/* Headers */
+h1{
+  font-size: 30pt;
+}
+h2{
+    margin-left: 15px;
+    font-size: 24pt;
+  }
+h3{
+    margin-left: 20px;
+  font-size: 18pt;
+  font-weight: bold;
+  
+}
+h4{
+    margin-left: 15px;
+  font-weight: bold;
+  font-size: 12pt;
+}
+h5{
+  margin-left: 15px;
+
+font-size: 12pt;
+}
+p{
+ margin-left: 20px;
+ margin-right: 20px;
+}
+img {
+    display: block;
+      margin: 0 auto;
+      
+}
+
+  pre {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
